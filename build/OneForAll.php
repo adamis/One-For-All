@@ -6,13 +6,13 @@
 define ( "PROJECT",    "OneForAll\/build" ); //ALTERE PARA O NOME DO PROJETO
 
 // DADOS DE BANCO (OFFICIAL)
-define ( "BANCO"  , "banco" ); //ALTERE PARA O NOME DO SEU BANCO
+define ( "BANCO"  , "oneforall" ); //ALTERE PARA O NOME DO SEU BANCO
 define ( "IP"     , "localhost"   ); //ALTERE O IP DO SEU SERVIDOR
 define ( "USUARIO", "root"        ); //ALTERE O USUARIO DO SEU SERVIDOR
 define ( "SENHA"  , ""            ); //ALTERE A SENHA DO SEU SERVIDOR
 
 // DADOS DE BANCO (TESTE)
-define ( "BANCO_T"  , "banco" ); //ALTERE PARA O NOME DO SEU BANCO
+define ( "BANCO_T"  , "oneforall" ); //ALTERE PARA O NOME DO SEU BANCO
 define ( "IP_T"     , "localhost"   ); //ALTERE O IP DO SEU SERVIDOR
 define ( "USUARIO_T", "root"        ); //ALTERE O USUARIO DO SEU SERVIDOR
 define ( "SENHA_T"  , ""            ); //ALTERE A SENHA DO SEU SERVIDOR
@@ -183,7 +183,11 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	if ($_GET ["method"] == "createDao") {
 		try {
 			createDao ();
-			echo "OK,Criando Adapters,createAdapter";
+			getPageable();
+			getRootClass();
+			getSort();
+			getFactoryPageable();
+			echo "OK,Criando Adapters,createAdapter,Pageable,RootClass,Sort";
 		} catch (Exception $e) {
 			echo $e.",Criando Adapters,createAdapter";
 		}
@@ -382,7 +386,7 @@ echo '<body>';
 echo '<div id=\"urlLocal\" style=\"display:none;\">http://' . \$project . '</div>';
 echo '<p class=\"nameOne\"><img src=\"https://adamis.com.br/oru_maito.png\" height=64 >OneForAll Framework</p>';
 
-echo '<p class=\"copiart\">Build 1.0 26/04/2020 17:15:57</p>';
+echo '<p class=\"copiart\">Build 1.0 29/01/2021 23:28:57</p>';
 echo '<br>';
 echo '<table id=\"tableMain\"></table>';
 echo '<p id=\"redir\"></p>';
@@ -532,6 +536,7 @@ function setUseAdapter($strHeader,$table) {
 //-----------------------CREATE_DAOS--------------------------------------
 function createDao()
 {
+    
     $tables = getAllTables();
 
     while ($table = $tables->fetch()) {
@@ -670,81 +675,12 @@ function createInteractor() {
         $strHeader = setUseInteractor($strHeader, 'engine\adapter');
         $strHeader = setUseInteractor($strHeader, 'engine\connection');
         $strHeader = setUseInteractor($strHeader, 'engine\dao');
+        $strHeader = setUseInteractor($strHeader, 'engine\dao\FactoryPageable');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\FilterWhere');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\ResponseDelete');
         
         $str ="";
         
-        $str .= "
-/**
- * FindAll
- */
-function find()
-{
-    \$where = new FilterWhere();
-	\$page = 0;
-	\$pageSize = 0;
-	\$list = Array(); 
-
-";
-    $coluns = getColum($table[0]);
-                
-    while ( $row = $coluns->fetch() ) {
-        if(strtolower($row['Field']) == 'id'){
-            $str .= "
-    if (isset(\$_REQUEST['".strtolower("id")."'])) {
-		\$where = new FilterWhere();
-		\$where->setCollum('".$table[0].".id');		
-		\$where->setValue(\$_REQUEST['".strtolower("id")."']);
-        \$list[]=\$where;
-    }
-";
-        }else if(strpos($row['Type'], 'int') !== false){
-            $str .= " 
-    if(isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
- 
-		 \$where = new FilterWhere();       
-		 \$where->setCollum('".strtolower($table[0].".".$row['Field'])."');         
-		 \$where->setValue(\$_REQUEST['".strtolower($row['Field'])."']);
-		 \$list[]=\$where;
-
-    }
-";
-        }else{
-            $str .= "
-    if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
-
-		\$where = new FilterWhere();       
-		\$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
-        \$where->setCondition('like');
-		\$where->setValue('%'.\$_REQUEST['".strtolower($row['Field'])."'].'%');
-		\$list[]=\$where;
-        
-    }";
-            
-        }
-    }
-    		$str .= "
-
- 	if (isset(\$_REQUEST['page'])) {
-    	\$page = \$_REQUEST['page'];
-    }
-    if (isset(\$_REQUEST['pageSize'])) {
-    	\$pageSize = \$_REQUEST['pageSize'];
-    }
-"; 
-    
-            $str .= "
-    \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
-    \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
-        
-    return json_encode(\$result);
-";
-    
-                $str .= "
-}
-";
         $str .= "
 /**
  * Get
@@ -806,11 +742,13 @@ function findAll()
     \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
     \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
         
-    return json_encode(\$result);
+    \$factoryPageable = new FactoryPageable();
+    return \$factoryPageable->makeResponse(\$result, \$page, \$pageSize);
 ";
         $str .= "
 }
 "; 
+
         $str .= "
 /**
  * Delete
@@ -1012,7 +950,7 @@ function getBarramento()
                 <p class="card-text">
                     Todas as suas apis serão listadas aqui!
                     <br>
-                    <span style="font-size: 10px; font-weight: bold;">Build 1.0 26/04/2020 17:15:58</span>
+                    <span style="font-size: 10px; font-weight: bold;">Build 1.0 29/01/2021 23:28:57</span>
                 </p>                 
             </div>
         </div>
@@ -2306,9 +2244,8 @@ class Acl {
         while ($table = $tables->fetch()) {
             $str .= "
             
-            //".strtoupper($table[0])."
-            \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"POST\"  ,\"find\",\$permission);
-            \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"GET\"   ,\"findAll\"    ,\$permission);
+            //".strtoupper($table[0])."            
+            \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"GET\"   ,\"findAll\"    ,\$permission);            
             \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"DELETE\",\"remove\" ,\$permission);
             \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"PUT\"   ,\"update\"    ,\$permission);
             \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"POST\"  ,\"create\" ,\$permission);
@@ -2940,6 +2877,295 @@ class FilterWhere{
 ?>";
 	gravar(UTILS."FilterWhere.php", $str);
 }
+
+
+function getPageable() {
+    $str = "<?php
+namespace engine\dao;
+
+class Pageable implements \JsonSerializable
+{
+
+    public \$offset; //Integer
+    public \$paged; //Boolean
+    public \$pageNumber; //Integer
+    public \$pageSize; //Integer
+    public \$sort; //Sort
+    public \$unpaged; //Boolean
+
+    public function jsonSerialize()
+    {
+        return [
+            'offset' => \$this->getOffset(),
+            'paged' => \$this->getPaged(),
+            'pageNumber' => \$this->getPageNumber(),
+            'pageSize' => \$this->getPageSize(),
+            'sort' => \$this->getSort(),
+            'unpaged' => \$this->getUnpaged(),
+        ];
+    }
+
+    public function getOffset()
+    {
+        return \$this->offset;
+    }
+    public function setOffset(\$offset)
+    {
+        \$this->offset = \$offset;
+    }
+    public function getPaged()
+    {
+        return \$this->paged;
+    }
+    public function setPaged(\$paged)
+    {
+        \$this->paged = \$paged;
+    }
+    public function getPageNumber()
+    {
+        return \$this->pageNumber;
+    }
+    public function setPageNumber(\$pageNumber)
+    {
+        \$this->pageNumber = \$pageNumber;
+    }
+    public function getPageSize()
+    {
+        return \$this->pageSize;
+    }
+    public function setPageSize(\$pageSize)
+    {
+        \$this->pageSize = \$pageSize;
+    }
+    public function getSort()
+    {
+        return \$this->sort;
+    }
+    public function setSort(\$sort)
+    {
+        \$this->sort = \$sort;
+    }
+    public function getUnpaged()
+    {
+        return \$this->unpaged;
+    }
+    public function setUnpaged(\$unpaged)
+    {
+        \$this->unpaged = \$unpaged;
+    }
+
+}";
+    
+    gravar(DAO."/Pageable.php", $str);
+}
+
+function getRootClass() {
+    $str = "<?php
+namespace engine\dao;
+
+class RootClass implements \JsonSerializable
+{
+
+    public \$content; //Object
+    public \$empty; //Boolean
+    public \$first; //Boolean
+    public \$last; //Boolean
+    public \$number; //Integer
+    public \$numberOfElements; //Integer
+    public \$pageable; //Pageable
+    public \$size; //Integer
+    public \$sort; //Sort
+    public \$totalElements; //Integer
+    public \$totalPages; //Integer
+
+    public function jsonSerialize()
+    {
+        return [
+            'content' => \$this->getContent(),
+            'empty' => \$this->getContent() == null?true:false,
+            'first' => (\$this->getPageable()->getPageNumber() == 0)?true:false,
+            'last' => ((\$this->getTotalPages()-1) == \$this->getPageable()->getPageNumber()) ?true:false,
+            'number' => \$this->getPageable()->getPageNumber(),
+            'numberOfElements' => sizeof(\$this->getContent()),
+            'pageable' => \$this->getPageable(),
+            'size' => sizeof(\$this->getContent()),
+            'sort' => \$this->getSort(),
+            'totalElements' => \$this->getTotalElements(),
+            'totalPages' => \$this->getTotalPages()
+        ];
+    }
+
+    public function getContent()
+    {
+        return \$this->content;
+    }
+    public function setContent(\$content)
+    {
+        \$this->content = \$content;
+    }
+    public function getEmpty()
+    {
+        return \$this->empty;
+    }
+    public function getFirst()
+    {
+        return \$this->first;
+    }
+    public function setFirst(\$first)
+    {
+        \$this->first = \$first;
+    }
+    public function getLast()
+    {
+        return \$this->last;
+    }
+    public function setLast(\$last)
+    {
+        \$this->last = \$last;
+    }
+    public function getNumber()
+    {
+        return \$this->number;
+    }
+    public function setNumber(\$number)
+    {
+        \$this->number = \$number;
+    }
+    public function getNumberOfElements()
+    {
+        return \$this->numberOfElements;
+    }
+    public function setNumberOfElements(\$numberOfElements)
+    {
+        \$this->numberOfElements = \$numberOfElements;
+    }
+    public function getPageable()
+    {
+        return \$this->pageable;
+    }
+    public function setPageable(\$pageable)
+    {
+        \$this->pageable = \$pageable;
+    }
+    public function getSize()
+    {
+        return \$this->size;
+    }
+    public function setSize(\$size)
+    {
+        \$this->size = \$size;
+    }
+    public function getSort()
+    {
+        return \$this->sort;
+    }
+    public function setSort(\$sort)
+    {
+        \$this->sort = \$sort;
+    }
+    public function getTotalElements()
+    {
+        return \$this->totalElements;
+    }
+    public function setTotalElements(\$totalElements)
+    {
+        \$this->totalElements = \$totalElements;
+    }
+    public function getTotalPages()
+    {
+        return \$this->totalPages;
+    }
+    public function setTotalPages(\$totalPages)
+    {
+        \$this->totalPages = \$totalPages;
+    }
+
+}";
+    
+    gravar(DAO."/RootClass.php", $str);
+}
+
+
+function getSort() {
+    $str = "<?php
+namespace engine\dao;
+
+class Sort
+{
+
+    public \$empty; //Boolean
+    public \$sorted; //Boolean
+    public \$unsorted; //Boolean
+    
+    public function getEmpty() { 
+            return \$this->empty; 
+    }
+    public function setEmpty(\$empty) { 
+            \$this->empty = \$empty; 
+    }    
+    public function getSorted() { 
+            return \$this->sorted; 
+    }
+    public function setSorted(\$sorted) { 
+            \$this->sorted = \$sorted; 
+    }    
+    public function getUnsorted() { 
+            return \$this->unsorted; 
+    }
+    public function setUnsorted(\$unsorted) { 
+            \$this->unsorted = \$unsorted; 
+    }    
+
+}";
+    
+    gravar(DAO."/Sort.php", $str);
+}
+
+function getFactoryPageable() {
+    $str = "<?php
+namespace engine\dao;
+
+class FactoryPageable
+{
+    public function makeResponse(\$lista, \$page, \$pageSize)
+    {
+        if(\$pageSize == 0){
+            \$pageSize = 1;
+        }
+        
+        //RootClass
+        \$rootClass = new RootClass();
+        \$rootClass->setContent(\$lista);
+        \$rootClass->setTotalElements(sizeof(\$lista));
+
+        \$pgSize = sizeof(\$lista) / \$pageSize;
+
+        if (fmod(sizeof(\$lista), \$pageSize) > 0) {
+            \$pgSize = (intval(\$pgSize) + 1);
+        }
+        \$rootClass->setTotalPages(\$pgSize);
+
+        //Pageable
+        \$pageable = new Pageable();
+        if (\$page == 0) {
+            \$page = 1;
+        }
+        \$pageable->setPageNumber(intval(\$page));
+        \$pageable->setPageSize(intval(\$pageSize));
+
+        \$sort = new Sort();
+
+        \$pageable->setSort(\$sort);
+        \$rootClass->setPageable(\$pageable);
+        \$rootClass->setSort(\$sort);
+
+        return json_encode(\$rootClass);
+    }
+}";
+    
+    gravar(DAO."/FactoryPageable.php", $str);
+}
+
 
 //-----------------------RESOURCES-------------------------------------
 //-----------------------SQL_STRUCT--------------------------------------

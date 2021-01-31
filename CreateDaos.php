@@ -2,6 +2,7 @@
 //-----------------------CREATE_DAOS--------------------------------------
 function createDao()
 {
+    
     $tables = getAllTables();
 
     while ($table = $tables->fetch()) {

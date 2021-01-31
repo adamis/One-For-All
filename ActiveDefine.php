@@ -6,13 +6,13 @@
 define ( "PROJECT",    "OneForAll\/build" ); //ALTERE PARA O NOME DO PROJETO
 
 // DADOS DE BANCO (OFFICIAL)
-define ( "BANCO"  , "banco" ); //ALTERE PARA O NOME DO SEU BANCO
+define ( "BANCO"  , "oneforall" ); //ALTERE PARA O NOME DO SEU BANCO
 define ( "IP"     , "localhost"   ); //ALTERE O IP DO SEU SERVIDOR
 define ( "USUARIO", "root"        ); //ALTERE O USUARIO DO SEU SERVIDOR
 define ( "SENHA"  , ""            ); //ALTERE A SENHA DO SEU SERVIDOR
 
 // DADOS DE BANCO (TESTE)
-define ( "BANCO_T"  , "banco" ); //ALTERE PARA O NOME DO SEU BANCO
+define ( "BANCO_T"  , "oneforall" ); //ALTERE PARA O NOME DO SEU BANCO
 define ( "IP_T"     , "localhost"   ); //ALTERE O IP DO SEU SERVIDOR
 define ( "USUARIO_T", "root"        ); //ALTERE O USUARIO DO SEU SERVIDOR
 define ( "SENHA_T"  , ""            ); //ALTERE A SENHA DO SEU SERVIDOR

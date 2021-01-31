@@ -11,7 +11,7 @@
                 <p class="card-text">
                     Todas as suas apis serão listadas aqui!
                     <br>
-                    <span style="font-size: 10px; font-weight: bold;">Build 1.0 26/04/2020 01:47:17</span>
+                    <span style="font-size: 10px; font-weight: bold;">Build 1.0 29/01/2021 23:27:10</span>
                 </p>                 
             </div>
         </div>

@@ -1322,9 +1322,8 @@ class Acl {
         while ($table = $tables->fetch()) {
             $str .= "
             
-            //".strtoupper($table[0])."
-            \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"POST\"  ,\"find\",\$permission);
-            \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"GET\"   ,\"findAll\"    ,\$permission);
+            //".strtoupper($table[0])."            
+            \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"GET\"   ,\"findAll\"    ,\$permission);            
             \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"DELETE\",\"remove\" ,\$permission);
             \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"PUT\"   ,\"update\"    ,\$permission);
             \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"POST\"  ,\"create\" ,\$permission);
@@ -1956,6 +1955,295 @@ class FilterWhere{
 ?>";
 	gravar(UTILS."FilterWhere.php", $str);
 }
+
+
+function getPageable() {
+    $str = "<?php
+namespace engine\dao;
+
+class Pageable implements \JsonSerializable
+{
+
+    public \$offset; //Integer
+    public \$paged; //Boolean
+    public \$pageNumber; //Integer
+    public \$pageSize; //Integer
+    public \$sort; //Sort
+    public \$unpaged; //Boolean
+
+    public function jsonSerialize()
+    {
+        return [
+            'offset' => \$this->getOffset(),
+            'paged' => \$this->getPaged(),
+            'pageNumber' => \$this->getPageNumber(),
+            'pageSize' => \$this->getPageSize(),
+            'sort' => \$this->getSort(),
+            'unpaged' => \$this->getUnpaged(),
+        ];
+    }
+
+    public function getOffset()
+    {
+        return \$this->offset;
+    }
+    public function setOffset(\$offset)
+    {
+        \$this->offset = \$offset;
+    }
+    public function getPaged()
+    {
+        return \$this->paged;
+    }
+    public function setPaged(\$paged)
+    {
+        \$this->paged = \$paged;
+    }
+    public function getPageNumber()
+    {
+        return \$this->pageNumber;
+    }
+    public function setPageNumber(\$pageNumber)
+    {
+        \$this->pageNumber = \$pageNumber;
+    }
+    public function getPageSize()
+    {
+        return \$this->pageSize;
+    }
+    public function setPageSize(\$pageSize)
+    {
+        \$this->pageSize = \$pageSize;
+    }
+    public function getSort()
+    {
+        return \$this->sort;
+    }
+    public function setSort(\$sort)
+    {
+        \$this->sort = \$sort;
+    }
+    public function getUnpaged()
+    {
+        return \$this->unpaged;
+    }
+    public function setUnpaged(\$unpaged)
+    {
+        \$this->unpaged = \$unpaged;
+    }
+
+}";
+    
+    gravar(DAO."/Pageable.php", $str);
+}
+
+function getRootClass() {
+    $str = "<?php
+namespace engine\dao;
+
+class RootClass implements \JsonSerializable
+{
+
+    public \$content; //Object
+    public \$empty; //Boolean
+    public \$first; //Boolean
+    public \$last; //Boolean
+    public \$number; //Integer
+    public \$numberOfElements; //Integer
+    public \$pageable; //Pageable
+    public \$size; //Integer
+    public \$sort; //Sort
+    public \$totalElements; //Integer
+    public \$totalPages; //Integer
+
+    public function jsonSerialize()
+    {
+        return [
+            'content' => \$this->getContent(),
+            'empty' => \$this->getContent() == null?true:false,
+            'first' => (\$this->getPageable()->getPageNumber() == 0)?true:false,
+            'last' => ((\$this->getTotalPages()-1) == \$this->getPageable()->getPageNumber()) ?true:false,
+            'number' => \$this->getPageable()->getPageNumber(),
+            'numberOfElements' => sizeof(\$this->getContent()),
+            'pageable' => \$this->getPageable(),
+            'size' => sizeof(\$this->getContent()),
+            'sort' => \$this->getSort(),
+            'totalElements' => \$this->getTotalElements(),
+            'totalPages' => \$this->getTotalPages()
+        ];
+    }
+
+    public function getContent()
+    {
+        return \$this->content;
+    }
+    public function setContent(\$content)
+    {
+        \$this->content = \$content;
+    }
+    public function getEmpty()
+    {
+        return \$this->empty;
+    }
+    public function getFirst()
+    {
+        return \$this->first;
+    }
+    public function setFirst(\$first)
+    {
+        \$this->first = \$first;
+    }
+    public function getLast()
+    {
+        return \$this->last;
+    }
+    public function setLast(\$last)
+    {
+        \$this->last = \$last;
+    }
+    public function getNumber()
+    {
+        return \$this->number;
+    }
+    public function setNumber(\$number)
+    {
+        \$this->number = \$number;
+    }
+    public function getNumberOfElements()
+    {
+        return \$this->numberOfElements;
+    }
+    public function setNumberOfElements(\$numberOfElements)
+    {
+        \$this->numberOfElements = \$numberOfElements;
+    }
+    public function getPageable()
+    {
+        return \$this->pageable;
+    }
+    public function setPageable(\$pageable)
+    {
+        \$this->pageable = \$pageable;
+    }
+    public function getSize()
+    {
+        return \$this->size;
+    }
+    public function setSize(\$size)
+    {
+        \$this->size = \$size;
+    }
+    public function getSort()
+    {
+        return \$this->sort;
+    }
+    public function setSort(\$sort)
+    {
+        \$this->sort = \$sort;
+    }
+    public function getTotalElements()
+    {
+        return \$this->totalElements;
+    }
+    public function setTotalElements(\$totalElements)
+    {
+        \$this->totalElements = \$totalElements;
+    }
+    public function getTotalPages()
+    {
+        return \$this->totalPages;
+    }
+    public function setTotalPages(\$totalPages)
+    {
+        \$this->totalPages = \$totalPages;
+    }
+
+}";
+    
+    gravar(DAO."/RootClass.php", $str);
+}
+
+
+function getSort() {
+    $str = "<?php
+namespace engine\dao;
+
+class Sort
+{
+
+    public \$empty; //Boolean
+    public \$sorted; //Boolean
+    public \$unsorted; //Boolean
+    
+    public function getEmpty() { 
+            return \$this->empty; 
+    }
+    public function setEmpty(\$empty) { 
+            \$this->empty = \$empty; 
+    }    
+    public function getSorted() { 
+            return \$this->sorted; 
+    }
+    public function setSorted(\$sorted) { 
+            \$this->sorted = \$sorted; 
+    }    
+    public function getUnsorted() { 
+            return \$this->unsorted; 
+    }
+    public function setUnsorted(\$unsorted) { 
+            \$this->unsorted = \$unsorted; 
+    }    
+
+}";
+    
+    gravar(DAO."/Sort.php", $str);
+}
+
+function getFactoryPageable() {
+    $str = "<?php
+namespace engine\dao;
+
+class FactoryPageable
+{
+    public function makeResponse(\$lista, \$page, \$pageSize)
+    {
+        if(\$pageSize == 0){
+            \$pageSize = 1;
+        }
+        
+        //RootClass
+        \$rootClass = new RootClass();
+        \$rootClass->setContent(\$lista);
+        \$rootClass->setTotalElements(sizeof(\$lista));
+
+        \$pgSize = sizeof(\$lista) / \$pageSize;
+
+        if (fmod(sizeof(\$lista), \$pageSize) > 0) {
+            \$pgSize = (intval(\$pgSize) + 1);
+        }
+        \$rootClass->setTotalPages(\$pgSize);
+
+        //Pageable
+        \$pageable = new Pageable();
+        if (\$page == 0) {
+            \$page = 1;
+        }
+        \$pageable->setPageNumber(intval(\$page));
+        \$pageable->setPageSize(intval(\$pageSize));
+
+        \$sort = new Sort();
+
+        \$pageable->setSort(\$sort);
+        \$rootClass->setPageable(\$pageable);
+        \$rootClass->setSort(\$sort);
+
+        return json_encode(\$rootClass);
+    }
+}";
+    
+    gravar(DAO."/FactoryPageable.php", $str);
+}
+
 
 //-----------------------RESOURCES--------------------------------------
 ?>

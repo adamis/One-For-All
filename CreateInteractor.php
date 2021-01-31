@@ -12,81 +12,12 @@ function createInteractor() {
         $strHeader = setUseInteractor($strHeader, 'engine\adapter');
         $strHeader = setUseInteractor($strHeader, 'engine\connection');
         $strHeader = setUseInteractor($strHeader, 'engine\dao');
+        $strHeader = setUseInteractor($strHeader, 'engine\dao\FactoryPageable');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\FilterWhere');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\ResponseDelete');
         
         $str ="";
         
-        $str .= "
-/**
- * FindAll
- */
-function find()
-{
-    \$where = new FilterWhere();
-	\$page = 0;
-	\$pageSize = 0;
-	\$list = Array(); 
-
-";
-    $coluns = getColum($table[0]);
-                
-    while ( $row = $coluns->fetch() ) {
-        if(strtolower($row['Field']) == 'id'){
-            $str .= "
-    if (isset(\$_REQUEST['".strtolower("id")."'])) {
-		\$where = new FilterWhere();
-		\$where->setCollum('".$table[0].".id');		
-		\$where->setValue(\$_REQUEST['".strtolower("id")."']);
-        \$list[]=\$where;
-    }
-";
-        }else if(strpos($row['Type'], 'int') !== false){
-            $str .= " 
-    if(isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
- 
-		 \$where = new FilterWhere();       
-		 \$where->setCollum('".strtolower($table[0].".".$row['Field'])."');         
-		 \$where->setValue(\$_REQUEST['".strtolower($row['Field'])."']);
-		 \$list[]=\$where;
-
-    }
-";
-        }else{
-            $str .= "
-    if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
-
-		\$where = new FilterWhere();       
-		\$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
-        \$where->setCondition('like');
-		\$where->setValue('%'.\$_REQUEST['".strtolower($row['Field'])."'].'%');
-		\$list[]=\$where;
-        
-    }";
-            
-        }
-    }
-    		$str .= "
-
- 	if (isset(\$_REQUEST['page'])) {
-    	\$page = \$_REQUEST['page'];
-    }
-    if (isset(\$_REQUEST['pageSize'])) {
-    	\$pageSize = \$_REQUEST['pageSize'];
-    }
-"; 
-    
-            $str .= "
-    \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
-    \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
-        
-    return json_encode(\$result);
-";
-    
-                $str .= "
-}
-";
         $str .= "
 /**
  * Get
@@ -148,11 +79,13 @@ function findAll()
     \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
     \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
         
-    return json_encode(\$result);
+    \$factoryPageable = new FactoryPageable();
+    return \$factoryPageable->makeResponse(\$result, \$page, \$pageSize);
 ";
         $str .= "
 }
 "; 
+
         $str .= "
 /**
  * Delete

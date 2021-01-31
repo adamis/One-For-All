@@ -7,7 +7,7 @@ define('URI', $_SERVER['REQUEST_URI']);
 define('TIME_FLOAT', $_SERVER['REQUEST_TIME_FLOAT']);
 
 define('BARRA', DIRECTORY_SEPARATOR);
-
+date_default_timezone_set ( "America/Sao_Paulo" );
 
 
 /*

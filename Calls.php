@@ -126,7 +126,11 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	if ($_GET ["method"] == "createDao") {
 		try {
 			createDao ();
-			echo "OK,Criando Adapters,createAdapter";
+			getPageable();
+			getRootClass();
+			getSort();
+			getFactoryPageable();
+			echo "OK,Criando Adapters,createAdapter,Pageable,RootClass,Sort";
 		} catch (Exception $e) {
 			echo $e.",Criando Adapters,createAdapter";
 		}
