@@ -241,7 +241,7 @@ function getBarramento()
                         <div class="form-group">
                                                         
                             <label for="exampleInputEmail1">Função:</label>                            
-                            <select>
+                            <select id="methodSelect<?=$cont?>" onchange="toggleJsonField(<?=$cont?>)">
 <?php
                             foreach ($permission as $key) {
                                 if((\'http://\'.$host.$key[2]) == $temp){                
@@ -252,6 +252,14 @@ function getBarramento()
                             </select>
                             <small id="emailHelp" class="form-text text-muted">Selecione a função que deseja testar!</small>    
 
+                        </div>
+
+                        <!-- Campo JSON para POST/PUT -->
+                        <div id="jsonField<?=$cont?>" class="form-group" style="display:none;">
+                            <label for="jsonInput<?=$cont?>">Corpo da Requisição (JSON):</label>
+                            <textarea id="jsonInput<?=$cont?>" class="form-control" rows="8" placeholder=\'{"exemplo": "valor", "campo": 123}\'></textarea>
+                            <small class="form-text text-muted">Cole ou digite o JSON que será enviado no corpo da requisição (POST/PUT)</small>
+                            <button type="button" onclick="formatJson(<?=$cont?>)" class="btn btn-sm btn-secondary mt-2">Formatar JSON</button>
                         </div>
                         
 
@@ -325,11 +333,11 @@ function getBarramento()
 
         //-------------- FUNÇÕES AUXILIARES --------------------------
         function gI(id) { return document.getElementById(id); }
-        function gL(obj) { return obj.length; }
-        function gY(obj) { return obj.type; }
-        function gC(obj) { return obj.className; }
-        function gV(obj) { return obj.value; }
-        function gH(obj) { return obj.innerHTML; }
+        function gL(obj) { return obj ? obj.length : 0; }
+        function gY(obj) { return obj ? obj.type : null; }
+        function gC(obj) { return obj ? obj.className : \'\'; }
+        function gV(obj) { return obj ? obj.value : \'\'; }
+        function gH(obj) { return obj ? obj.innerHTML : null; }
         //-------------- FIM FUNÇÕES AUXILIARES --------------------------
 
         //-------------- PRETTY --------------------------
@@ -394,42 +402,86 @@ function getBarramento()
             }
         }
 
+        function toggleJsonField(idForm) {
+            var select = document.getElementById(\'methodSelect\'+idForm);
+            var jsonField = document.getElementById(\'jsonField\'+idForm);
+            var selectedValue = select.value;
+            var type = selectedValue.split(\':\')[0];
+            
+            if (type === \'POST\' || type === \'PUT\') {
+                jsonField.style.display = \'block\';
+            } else {
+                jsonField.style.display = \'none\';
+            }
+        }
+
+        function formatJson(idForm) {
+            var textarea = document.getElementById(\'jsonInput\'+idForm);
+            try {
+                var json = JSON.parse(textarea.value);
+                textarea.value = JSON.stringify(json, null, 2);
+            } catch (e) {
+                alert(\'JSON inválido: \' + e.message);
+            }
+        }
+
         function exec(url,idForm) {
             var type;
             var funcName;
             var params ="";
-                        
+            
             var result = getForm(idForm).split(\'<gz>\');
-
-            for (let index = 0; index < result.length;index++) {
-                if(index == 0){
-                    var func = result[index].split(\':\');
-                    type = func[0];
-                    funcName = func[1];
-
-                }else{
-
-                    if(index%2 == 1){                        
-                        params += result[index];                         
-                    }else{                        
-                        params += "="+result[index]; 
-                        
-                        if(index+1 != result.length){
-                            params += "&";
-                        }
-                    }
-                    
-                }                
-            }           
-            //alert(params);
-
-            if(type == \'GET\'){
-                request(type,"http://"+url+funcName +"?"+ params, null, \'resultconsole\',idForm);            
-            }else{
-                request(type,"http://"+url+funcName, params, \'resultconsole\',idForm);            
+            
+            // Pegar o tipo e nome da função
+            if(result.length > 0){
+                var func = result[0].split(\':\');
+                type = func[0];
+                funcName = func[1];
             }
             
+            // Verificar se há JSON para POST/PUT
+            var jsonInput = document.getElementById(\'jsonInput\'+idForm);
+            var hasJson = jsonInput && jsonInput.value.trim() !== \'\';
+            
+            if((type === \'POST\' || type === \'PUT\') && hasJson){
+                // Usar JSON do textarea
+                try {
+                    var jsonData = JSON.parse(jsonInput.value);
+                    var jsonString = JSON.stringify(jsonData);
+                    request(type,"http://"+url+funcName, jsonString, \'resultconsole\',idForm, true);
+                } catch(e) {
+                    alert(\'JSON inválido: \' + e.message);
+                    return;
+                }
+            } else {
+                // Usar parâmetros tradicionais
+                for (let index = 0; index < result.length;index++) {
+                    if(index == 0){
+                        var func = result[index].split(\':\');
+                        type = func[0];
+                        funcName = func[1];
 
+                    }else{
+
+                        if(index%2 == 1){                        
+                            params += result[index];                         
+                        }else{                        
+                            params += "="+result[index]; 
+                            
+                            if(index+1 != result.length){
+                                params += "&";
+                            }
+                        }
+                        
+                    }                
+                }           
+
+                if(type == \'GET\' || type == \'DELETE\'){
+                    request(type,"http://"+url+funcName +"?"+ params, null, \'resultconsole\',idForm);            
+                }else{
+                    request(type,"http://"+url+funcName, params, \'resultconsole\',idForm);            
+                }
+            }
         }
 
         function resultconsole(msg,status,idForm){
@@ -449,11 +501,17 @@ function getBarramento()
             
         }
 
-        function request(method, url, object, callback,idForm) {
+        function request(method, url, object, callback,idForm, isJson) {
             var request = new XMLHttpRequest();
             request.open(method, url, true);			
             request.setRequestHeader("Accept-Language", "pt-BR");
-            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            
+            // Definir Content-Type baseado no tipo de dados
+            if (isJson) {
+                request.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
+            } else {
+                request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            }
             request.onreadystatechange = function() {
                 if (request.readyState == 4 && (request.status == 200 || request.status == 300)) {
                     
