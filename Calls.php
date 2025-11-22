@@ -117,28 +117,24 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	if ($_GET ["method"] == "base") {
 		try {
 			getBase ();
-			echo "OK,Criando DAO's,createDao";
+			echo "OK,Criando Models,createModel";
 		} catch (Exception $e) {
-			echo $e.",Criando DAO's,createDao";
+			echo $e.",Criando Models,createModel";
+		}
+	}
+	
+	if ($_GET ["method"] == "createModel") {
+		try {
+			createModel ();
+			echo "OK,Criando DAOs,createDao";
+		} catch (Exception $e) {
+			echo $e.",Criando DAOs,createDao";
 		}
 	}
 	
 	if ($_GET ["method"] == "createDao") {
 		try {
-			createDao ();
-			getPageable();
-			getRootClass();
-			getSort();
-			getFactoryPageable();
-			echo "OK,Criando Adapters,createAdapter,Pageable,RootClass,Sort";
-		} catch (Exception $e) {
-			echo $e.",Criando Adapters,createAdapter";
-		}
-	}
-	
-	if ($_GET ["method"] == "createAdapter") {
-		try {
-			createAdapters ();
+			createDaos ();
 			echo "OK,Criando Interactors,createInteractor";
 		} catch (Exception $e) {
 			echo $e.",Criando Interactors,createInteractor";

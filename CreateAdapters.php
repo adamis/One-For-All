@@ -1,19 +1,21 @@
 <?php
-//-----------------------CREATE_ADAPTER--------------------------------------
+//-----------------------CREATE_DAO--------------------------------------
 
-function createAdapters() {
+function createDaos() {
     $tables = getAllTables();
     
-    while ($table = $tables->fetch()) {
+    while ($tableRow = $tables->fetch()) {
+        // Compatibilidade PHP 8: extrair nome da tabela
+        $table = [is_array($tableRow) ? array_values($tableRow)[0] : $tableRow];
         
         $strHeader = "<?php
-namespace engine\adapter;
+namespace engine\dao;
 ";
-        $strHeader = setUseAdapter($strHeader,"engine\dao\\".ucfirst($table[0]));
-        $strHeader = setUseAdapter($strHeader,"engine\utils\FilterWhere");
+        $strHeader = setUseDao($strHeader,"engine\model\\".ucfirst($table[0]));
+        $strHeader = setUseDao($strHeader,"engine\utils\FilterWhere");
         
         $str = "
-class ".ucfirst($table[0])."Adapter {
+class ".ucfirst($table[0])."Dao {
 			
     private \$connection;
     	
@@ -63,14 +65,14 @@ class ".ucfirst($table[0])."Adapter {
                     $str .= "
            if(\$result['".$row ['Field']."'] != null){
                 //".strtoupper($row ['Field'])."
-                \$".$tab['tabela_referencia']."Adapter = new ".ucfirst($tab['tabela_referencia'])."Adapter(\$this->connection);
+                \$".$tab['tabela_referencia']."Dao = new ".ucfirst($tab['tabela_referencia'])."Dao(\$this->connection);
 				\$filter = new FilterWhere();
                 \$filter->setCollum('".$tab["coluna_referencia"]."');
                 \$filter->setValue(\$result['".$row ['Field']."']);
                 \$list = Array(\$filter);                
 
 
-                \$result".ucfirst($tab['tabela_referencia'])." = \$".$tab['tabela_referencia']."Adapter->getAll(\$list, \"\", \"\", 0, 0);
+                \$result".ucfirst($tab['tabela_referencia'])." = \$".$tab['tabela_referencia']."Dao->getAll(\$list, \"\", \"\", 0, 0);
             	\$".$table[0]."->set".ucfirst($row ['Field'])."(\$result".ucfirst($tab['tabela_referencia'])."[0]);
                 
            }
@@ -112,11 +114,11 @@ class ".ucfirst($table[0])."Adapter {
 }
 ?>";
         
-        gravar("engine/adapter/".ucfirst($table[0])."Adapter.php", $strHeader.$str);
+        gravar("engine/dao/".ucfirst($table[0])."Dao.php", $strHeader.$str);
     }
 }
 
-function setUseAdapter($strHeader,$table) {
+function setUseDao($strHeader,$table) {
 	
 	if (strpos($strHeader, ucfirst($table)) !== false) {
 		$strHeader = $strHeader;
@@ -131,5 +133,5 @@ function setUseAdapter($strHeader,$table) {
 
 
 
-//-----------------------CREATE_ADAPTER--------------------------------------
+//-----------------------CREATE_DAO--------------------------------------
 ?>

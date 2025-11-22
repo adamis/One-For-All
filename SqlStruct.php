@@ -27,7 +27,7 @@ function getAllTables() {
 function showColum($table) {
     
     $pdo_ = getConection();
-    $query = 'SHOW COLUMNS FROM ' . (MAPPING_DATABASE =="TESTE"?BANCO_T:BANCO). '.' . $table;
+    $query = 'SHOW COLUMNS FROM `' . (MAPPING_DATABASE =="TESTE"?BANCO_T:BANCO). '`.`' . $table . '`';
     $sth = $pdo_->prepare( $query );
     $sth->execute ();
     
@@ -75,7 +75,7 @@ function getFkTable($table,$fk) {
 
 function getPrimaryKeys($table) {
     $pdo_ = getConection();
-    $sql = 'SHOW KEYS FROM '. (MAPPING_DATABASE =="TESTE"?BANCO_T:BANCO). '.' . $table.'  WHERE Key_name = \'PRIMARY\'';  
+    $sql = 'SHOW KEYS FROM `'. (MAPPING_DATABASE =="TESTE"?BANCO_T:BANCO). '`.`' . $table.'`  WHERE Key_name = \'PRIMARY\'';  
     $sth = $pdo_->prepare( $sql );
     $sth->execute();
     
@@ -85,7 +85,7 @@ function getPrimaryKeys($table) {
 function getColum($table) {
     
     $pdo_ = getConection();
-    $query = 'SHOW COLUMNS FROM ' . (MAPPING_DATABASE =="TESTE"?BANCO_T:BANCO). '.' . $table;
+    $query = 'SHOW COLUMNS FROM `' . (MAPPING_DATABASE =="TESTE"?BANCO_T:BANCO). '`.`' . $table . '`';
     $sth = $pdo_->prepare( $query );
     $sth->execute();
     

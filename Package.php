@@ -35,6 +35,7 @@ if ($handle = opendir('.')) {
             && $entry != "Package.php" 
             && $entry != "build"
         	&& $entry != "Activated.php"
+        	&& $entry != "README.md"
         ) {            
                 //echo "$entry<br>";
                 

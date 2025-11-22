@@ -1,0 +1,10 @@
+Options -Indexes
+
+RewriteEngine On
+RewriteBase /One-For-All/build/
+
+RewriteRule ^api/(\w+)/(\w+)/?$ engine/Router.php?class=$1&method=$2&param=api [NC,L,QSA]
+
+RewriteRule ^web/(\w+)/(\w+)/?$ engine/Router.php?class=$1&method=$2&param=web [NC,L]
+
+RewriteRule ^barramento/?$ barramento.php [NC,L]

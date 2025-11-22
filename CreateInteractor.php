@@ -9,15 +9,84 @@ function createInteractor() {
         
         $strHeader = "<?php    
 ";
-        $strHeader = setUseInteractor($strHeader, 'engine\adapter');
-        $strHeader = setUseInteractor($strHeader, 'engine\connection');
         $strHeader = setUseInteractor($strHeader, 'engine\dao');
-        $strHeader = setUseInteractor($strHeader, 'engine\dao\FactoryPageable');
+        $strHeader = setUseInteractor($strHeader, 'engine\connection');
+        $strHeader = setUseInteractor($strHeader, 'engine\model');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\FilterWhere');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\ResponseDelete');
         
         $str ="";
         
+        $str .= "
+/**
+ * FindAll
+ */
+function find()
+{
+    \$where = new FilterWhere();
+	\$page = 0;
+	\$pageSize = 0;
+	\$list = Array(); 
+
+";
+    $coluns = getColum($table[0]);
+                
+    while ( $row = $coluns->fetch() ) {
+        if(strtolower($row['Field']) == 'id'){
+            $str .= "
+    if (isset(\$_REQUEST['".strtolower("id")."'])) {
+		\$where = new FilterWhere();
+		\$where->setCollum('".$table[0].".id');		
+		\$where->setValue(\$_REQUEST['".strtolower("id")."']);
+        \$list[]=\$where;
+    }
+";
+        }else if(strpos($row['Type'], 'int') !== false){
+            $str .= " 
+    if(isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
+ 
+		 \$where = new FilterWhere();       
+		 \$where->setCollum('".strtolower($table[0].".".$row['Field'])."');         
+		 \$where->setValue(\$_REQUEST['".strtolower($row['Field'])."']);
+		 \$list[]=\$where;
+
+    }
+";
+        }else{
+            $str .= "
+    if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
+
+		\$where = new FilterWhere();       
+		\$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
+        \$where->setCondition('like');
+		\$where->setValue('%'.\$_REQUEST['".strtolower($row['Field'])."'].'%');
+		\$list[]=\$where;
+        
+    }";
+            
+        }
+    }
+    		$str .= "
+
+ 	if (isset(\$_REQUEST['page'])) {
+    	\$page = \$_REQUEST['page'];
+    }
+    if (isset(\$_REQUEST['pageSize'])) {
+    	\$pageSize = \$_REQUEST['pageSize'];
+    }
+"; 
+    
+            $str .= "
+    \$connection = new connection\Connection();
+    \$".strtolower($table[0])."Dao = new dao\\".ucfirst($table[0])."Dao(\$connection);
+    \$result = \$".strtolower($table[0])."Dao->getAll(\$list, \"\", \"\", \$page, \$pageSize);
+        
+    return json_encode(\$result);
+";
+    
+                $str .= "
+}
+";
         $str .= "
 /**
  * Get
@@ -76,11 +145,10 @@ function findAll()
         
         $str .= "
     \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
-    \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
+    \$".strtolower($table[0])."Dao = new dao\\".ucfirst($table[0])."Dao(\$connection);
+    \$result = \$".strtolower($table[0])."Dao->getAll(\$list, \"\", \"\", \$page, \$pageSize);
         
-    \$factoryPageable = new FactoryPageable();
-    return \$factoryPageable->makeResponse(\$result, \$page, \$pageSize);
+    return json_encode(\$result);
 ";
         $str .= "
 }
@@ -92,7 +160,7 @@ function findAll()
  */
 function remove()
 {
-    \$".strtolower($table[0])." = new dao\\".ucfirst($table[0])."();
+    \$".strtolower($table[0])." = new model\\".ucfirst($table[0])."();
 ";
     $coluns = getColum($table[0]);
                 
@@ -123,8 +191,8 @@ function remove()
     
     $str .= "
     \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
-    \$result = \$".strtolower($table[0])."Adapter->delete(\$".strtolower($table[0]).");
+    \$".strtolower($table[0])."Dao = new dao\\".ucfirst($table[0])."Dao(\$connection);
+    \$result = \$".strtolower($table[0])."Dao->delete(\$".strtolower($table[0]).");
 
     ";    
 	$str .= "
@@ -149,7 +217,7 @@ function remove()
  */
 function update()
 {
- \$".strtolower($table[0])." = new dao\\".ucfirst($table[0])."();
+ \$".strtolower($table[0])." = new model\\".ucfirst($table[0])."();
 ";
     $str .="
 	\$post_vars = getParametersPUT();
@@ -185,8 +253,8 @@ function update()
     }
     $str .= "
     \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
-    \$result = \$".strtolower($table[0])."Adapter->create(\$".strtolower($table[0]).");
+    \$".strtolower($table[0])."Dao = new dao\\".ucfirst($table[0])."Dao(\$connection);
+    \$result = \$".strtolower($table[0])."Dao->create(\$".strtolower($table[0]).");
         
     return json_encode(\$result);
 ";
@@ -201,7 +269,7 @@ function update()
  */
 function create()
 {
-    \$".strtolower($table[0])." = new dao\\".ucfirst($table[0])."();
+    \$".strtolower($table[0])." = new model\\".ucfirst($table[0])."();
 ";
     $coluns = getColum($table[0]);
                 
@@ -228,8 +296,8 @@ function create()
     }
     $str .= "
     \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
-    \$result = \$".strtolower($table[0])."Adapter->create(\$".strtolower($table[0]).");
+    \$".strtolower($table[0])."Dao = new dao\\".ucfirst($table[0])."Dao(\$connection);
+    \$result = \$".strtolower($table[0])."Dao->create(\$".strtolower($table[0]).");
         
     return json_encode(\$result);
 ";

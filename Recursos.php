@@ -323,6 +323,15 @@ function getBarramento()
     <script type="text/javascript">
         <?php echo $script; ?>
 
+        //-------------- FUNÇÕES AUXILIARES --------------------------
+        function gI(id) { return document.getElementById(id); }
+        function gL(obj) { return obj.length; }
+        function gY(obj) { return obj.type; }
+        function gC(obj) { return obj.className; }
+        function gV(obj) { return obj.value; }
+        function gH(obj) { return obj.innerHTML; }
+        //-------------- FIM FUNÇÕES AUXILIARES --------------------------
+
         //-------------- PRETTY --------------------------
         if (!library)
         var library = {};
@@ -779,7 +788,7 @@ class Connection{
         }
         
         // Concatena todas as variaveis e finaliza a instrucao
-        \$sql .= 'INSERT INTO ' . \$this->bancoName . '.' . \$nameTable . ' (' . \$campos . ')VALUES(' . \$valores . ')';
+        \$sql .= 'INSERT INTO `' . \$this->bancoName . '`.`' . \$nameTable . '` (' . \$campos . ')VALUES(' . \$valores . ')';
         
         \$this->showCase(\$sql);
         
@@ -852,7 +861,7 @@ class Connection{
         }
         
         // Concatena todas as variaveis e finaliza a instrucao
-        \$sql .= ' UPDATE ' . \$this->bancoName . '.' . \$nameTable;
+        \$sql .= ' UPDATE `' . \$this->bancoName . '`.`' . \$nameTable . '`';
         \$sql .= ' SET ' . \$set;
         \$sql .= ' WHERE ' . \$where;
         
@@ -898,7 +907,7 @@ class Connection{
         }
         
         // Concatena todas as variaveis e finaliza a instrucao
-        \$sql .= ' DELETE FROM ' . \$this->bancoName . '.' . \$nameTable;
+        \$sql .= ' DELETE FROM `' . \$this->bancoName . '`.`' . \$nameTable . '`';
         \$sql .= ' WHERE ' . \$where;
         
         \$this->showCase(\$sql);
@@ -1027,7 +1036,7 @@ class Connection{
         }
         
         \$sql = ' SELECT ' . \$coluns;
-        \$sql .= ' FROM ' . \$this->bancoName . '.' . \$table;
+        \$sql .= ' FROM `' . \$this->bancoName . '`.`' . \$table . '`';
         
         //var_dump(\$where);
         
@@ -1176,7 +1185,7 @@ class Connection{
     private function showColum(\$table)
     {
         
-        \$sql = 'SHOW COLUMNS FROM ' . \$this->bancoName . '.' . strtolower(\$table);
+        \$sql = 'SHOW COLUMNS FROM `' . \$this->bancoName . '`.`' . strtolower(\$table) . '`';
         
         \$this->beginConnection();
         
@@ -1190,7 +1199,7 @@ class Connection{
         
     private function showPrimaryKey(\$table)
     {
-        \$sql = 'SHOW KEYS FROM ' . \$this->bancoName . '.' . \$table . '  WHERE Key_name = \'PRIMARY\'';
+        \$sql = 'SHOW KEYS FROM `' . \$this->bancoName . '`.`' . \$table . '`  WHERE Key_name = \'PRIMARY\'';
         
         \$this->beginConnection();
         
