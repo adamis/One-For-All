@@ -52,6 +52,12 @@ function shouldGenerateCrud($table)
     return strpos(strtolower((string) $table), 'ofa_') !== 0;
 }
 
+function isDateColumn($type)
+{
+    $t = strtolower(trim(preg_replace('/\(.*$/', '', (string) $type)));
+    return in_array($t, ['date', 'datetime', 'timestamp', 'time'], true);
+}
+
 function getFk($table)
 {
     $pdo_ = getConection();

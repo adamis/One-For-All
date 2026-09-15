@@ -660,14 +660,16 @@ class Hosts{
     
     private \$oficial   = false;   
     private \$showDebug = false; 
-    private \$banco   = \"\";
-    private \$ip      = \"\";
-    private \$usuario = \"\";
-    private \$senha   = \"\";
-    private \$folder  = \"\";
+    private \$banco    = \"\";
+    private \$ip       = \"\";
+    private \$usuario  = \"\";
+    private \$senha    = \"\";
+    private \$folder   = \"\";
+    private \$timezone = \"\";
     
     
     function __construct() {
+        \$this->timezone = \"" . (defined('TIMEZONE') ? TIMEZONE : 'America/Sao_Paulo') . "\";
         if(\$this->oficial){
             \$this->banco   = \"".BANCO."\";
             \$this->ip      = \"".IP."\";
@@ -709,6 +711,11 @@ class Hosts{
     {
         return \$this->showDebug;
     }
+
+    function getTimezone()
+    {
+        return \$this->timezone;
+    }
 }
 ?>";
     
@@ -743,12 +750,27 @@ class Connection{
      *            Objeto de dados contendo colunas e valores
      * @return \$object
      */
+    private function objectToRow(\$object)
+    {
+        if (is_object(\$object) && method_exists(\$object, 'toStorageArray')) {
+            return \$object->toStorageArray();
+        }
+        \$row = json_decode(json_encode(\$object), true);
+        if (!is_array(\$row)) {
+            return array();
+        }
+        if (is_object(\$object) && !property_exists(\$object, 'timezone')) {
+            unset(\$row['timezone']);
+        }
+        return \$row;
+    }
+
     private function insert(\$object)
     {
         \$pieces = explode('\\\', get_class(\$object));
         \$nameTable = strtolower(\$pieces[sizeof(\$pieces) - 1]);
 
-        \$json = json_decode(json_encode(\$object), true);
+        \$json = \$this->objectToRow(\$object);
         \$campos = array();
         \$placeholders = array();
         \$params = array();
@@ -792,7 +814,7 @@ class Connection{
     {
         \$pieces = explode('\\\', get_class(\$object));
         \$nameTable = strtolower(\$pieces[sizeof(\$pieces) - 1]);
-        \$json = json_decode(json_encode(\$object), true);
+        \$json = \$this->objectToRow(\$object);
         \$keys = \$object->getKeys();
 
         \$sets = array();
@@ -902,33 +924,18 @@ class Connection{
         //TO LOWER
         \$nameTable = strtolower(\$nameTable);
         
-        \$tempjson = json_encode(\$object);
-        
-        \$json = json_decode(\$tempjson, true);
-        
-        \$jsonData = array_values(\$json);
-        
         \$list = \$object->getKeys();
         
         
         if (\$list != null) {
         
-            // //PRIMARY KEYS
-            \$listKeys = array_keys(\$list);
-        
-            // //WHERE            
-            
-            \$anding = '';
-        
-            for (\$i = 0; \$i < sizeof(\$listKeys); \$i ++) {
-        
-                if(\$jsonData[\$i] != null){
+            foreach (\$list as \$keyName => \$keyVal) {
+                if(\$keyVal != null && \$keyVal !== ''){
                 	\$where = new FilterWhere();
-                	\$where->setCollum(\$listKeys[\$i]);
-                	\$where->setValue(\$jsonData[\$i]);
+                	\$where->setCollum(\$keyName);
+                	\$where->setValue(\$keyVal);
                 	\$listWhere[] = \$where;
                 }
-        
             }        
             
             if(sizeof(\$listWhere)>0){
@@ -1088,6 +1095,9 @@ class Connection{
         \$host = new engine\Hosts();
         \$this->bancoName   = \$host->getBanco();
         \$this->showcaseSQL = \$host->getShowDebug();
+        if (method_exists(\$host, 'getTimezone') && \$host->getTimezone() !== '') {
+            date_default_timezone_set(\$host->getTimezone());
+        }
         
         \$dsn = 'mysql:dbname=' . \$host->getBanco() . ';host=' . \$host->getIp().';charset=utf8mb4';
         
@@ -1108,6 +1118,14 @@ class Connection{
         }catch (\Exception \$e){
             error_log(\$e->getMessage());
             exit('Algo estranho aconteceu ao conectar com o Banco de Dados!'); //something a user can understand
+        }
+        \$tzName = method_exists(\$host, 'getTimezone') ? \$host->getTimezone() : '';
+        if (\$tzName !== '') {
+            try {
+                \$offset = (new \\DateTime('now', new \\DateTimeZone(\$tzName)))->format('P');
+                \$this->pdo_->exec('SET time_zone = ' . \$this->pdo_->quote(\$offset));
+            } catch (\\Exception \$ignored) {
+            }
         }
         return \$this->pdo_;
     }
@@ -1197,6 +1215,11 @@ define('URI', \$_SERVER['REQUEST_URI']);
 define('TIME_FLOAT', \$_SERVER['REQUEST_TIME_FLOAT']);
 
 define('BARRA', DIRECTORY_SEPARATOR);
+
+\$hostsTz = new Hosts();
+if (method_exists(\$hostsTz, 'getTimezone') && \$hostsTz->getTimezone() !== '') {
+    date_default_timezone_set(\$hostsTz->getTimezone());
+}
 
 
 
@@ -1325,8 +1348,8 @@ function getRouter() {
     use engine\\auth\\TokenGuard;
     use engine\Acl;
 
-	include_once 'interactor/base.php';
 	include_once '../Autoload.php';
+	include_once 'interactor/base.php';
 
 	\$_GET[\"class\"] = preg_replace('/[^a-z0-9_]/i', '', \$_GET[\"class\"] ?? '');
 	\$_GET[\"method\"] = preg_replace('/[^a-z0-9_]/i', '', \$_GET[\"method\"] ?? '');
@@ -1334,6 +1357,14 @@ function getRouter() {
 
 	if(\$_GET[\"param\"] == 'api'){
 		header(\"Content-type: application/json; charset=UTF-8\");
+	}
+
+	\$hostsTz = new Hosts();
+	if (method_exists(\$hostsTz, 'getTimezone') && \$hostsTz->getTimezone() !== '') {
+		date_default_timezone_set(\$hostsTz->getTimezone());
+		if(\$_GET[\"param\"] == 'api'){
+			header(\"X-Timezone: \" . \$hostsTz->getTimezone());
+		}
 	}
 
 	if (file_exists(__DIR__ . '/auth/TokenGuard.php')) {
@@ -1886,6 +1917,127 @@ class ChromePhp
 	
 }
 
+function getDateTimeCodec()
+{
+    $str = <<<'PHP'
+<?php
+namespace engine\utils;
+
+use engine\Hosts;
+
+class DateTimeCodec
+{
+    const API_FORMAT = 'd-m-Y\TH:i:s\Z';
+
+    private static $tzName;
+
+    public static function timezoneName()
+    {
+        if (self::$tzName === null) {
+            $name = '';
+            if (class_exists('engine\\Hosts')) {
+                $hosts = new Hosts();
+                if (method_exists($hosts, 'getTimezone')) {
+                    $name = (string) $hosts->getTimezone();
+                }
+            }
+            self::$tzName = $name !== '' ? $name : date_default_timezone_get();
+        }
+        return self::$tzName;
+    }
+
+    public static function appTimezone()
+    {
+        return new \DateTimeZone(self::timezoneName());
+    }
+
+    public static function toApi($value)
+    {
+        $dt = self::parse($value);
+        if ($dt === null) {
+            return $value;
+        }
+        $dt->setTimezone(new \DateTimeZone('UTC'));
+        return $dt->format(self::API_FORMAT);
+    }
+
+    public static function toStorage($value)
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+        $dt = self::parse($value);
+        if ($dt === null) {
+            return $value;
+        }
+        $dt->setTimezone(self::appTimezone());
+        return $dt->format('Y-m-d H:i:s');
+    }
+
+    private static function parse($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return \DateTime::createFromInterface($value);
+        }
+
+        $raw = trim((string) $value);
+        $utc = new \DateTimeZone('UTC');
+        $app = self::appTimezone();
+
+        $strict = \DateTime::createFromFormat('!' . self::API_FORMAT, $raw, $utc);
+        if ($strict instanceof \DateTime && self::formatOk($strict)) {
+            return $strict;
+        }
+
+        $withOffset = \DateTime::createFromFormat('!d-m-Y\TH:i:sP', $raw);
+        if ($withOffset instanceof \DateTime && self::formatOk($withOffset)) {
+            return $withOffset;
+        }
+
+        $formats = [
+            ['!Y-m-d\TH:i:s\Z', $utc],
+            ['!Y-m-d\TH:i:sP', null],
+            ['!Y-m-d H:i:s', $app],
+            ['!Y-m-d H:i:s.u', $app],
+            ['!Y-m-d', $app],
+            ['!d-m-Y H:i:s', $app],
+            ['!d/m/Y H:i:s', $app],
+            ['!d-m-Y', $app],
+            ['!d/m/Y', $app],
+            ['!H:i:s', $app],
+        ];
+
+        foreach ($formats as $item) {
+            $fmt = $item[0];
+            $tz = $item[1];
+            $dt = $tz ? \DateTime::createFromFormat($fmt, $raw, $tz) : \DateTime::createFromFormat($fmt, $raw);
+            if ($dt instanceof \DateTime && self::formatOk($dt)) {
+                return $dt;
+            }
+        }
+
+        try {
+            return new \DateTime($raw);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    private static function formatOk(\DateTime $dt)
+    {
+        $errors = \DateTime::getLastErrors();
+        if ($errors === false) {
+            return true;
+        }
+        return empty($errors['warning_count']) && empty($errors['error_count']);
+    }
+}
+PHP;
+    gravar(UTILS . "DateTimeCodec.php", $str);
+}
 
 function getFilterWhere() {
 	$str ="<?php

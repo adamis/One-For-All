@@ -17,6 +17,7 @@ function createInteractor() {
         $strHeader = setUseInteractor($strHeader, 'engine\dao');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\FilterWhere');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\ResponseDelete');
+        $strHeader = setUseInteractor($strHeader, 'engine\utils\DateTimeCodec');
         
         $str ="";
         
@@ -55,6 +56,15 @@ function find()
 
     }
 ";
+        }else if(isDateColumn($row['Type'])){
+            $str .= "
+    if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
+		\$where = new FilterWhere();
+		\$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
+		\$where->setValue(DateTimeCodec::toStorage(\$_REQUEST['".strtolower($row['Field'])."']));
+		\$list[]=\$where;
+    }
+";
         }else{
             $str .= "
     if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
@@ -84,7 +94,7 @@ function find()
     \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
     \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
         
-    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ";
     
                 $str .= "
@@ -123,6 +133,15 @@ function findAll()
 		 \$list[]=\$where;
     }
 ";
+            }else if(isDateColumn($row['Type'])){
+                $str .= "
+    if (isset(\$_GET['".strtolower($row['Field'])."'])) {
+         \$where = new FilterWhere();
+		 \$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
+		 \$where->setValue(DateTimeCodec::toStorage(\$_GET['".strtolower($row['Field'])."']));
+		 \$list[]=\$where;
+    }
+";
             }else{
                 $str .= "
     if (isset(\$_GET['".strtolower($row['Field'])."'])) {
@@ -151,7 +170,7 @@ function findAll()
     \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
     \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
         
-    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ";
         $str .= "
 }
@@ -207,7 +226,7 @@ function remove()
 	}	
 ";
 	$str .= "
-    return json_encode(\$response, JSON_UNESCAPED_UNICODE);
+    return json_encode(\$response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ";
     
     $str .= "
@@ -258,7 +277,7 @@ function update()
     \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
     \$result = \$".strtolower($table[0])."Adapter->create(\$".strtolower($table[0]).");
         
-    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ";
     
     $str .="
@@ -301,7 +320,7 @@ function create()
     \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
     \$result = \$".strtolower($table[0])."Adapter->create(\$".strtolower($table[0]).");
         
-    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ";
     
     $str .="       

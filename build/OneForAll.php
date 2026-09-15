@@ -6,7 +6,7 @@
 
 // NOME DA PASTA DO PROJETO (caminho web a partir do htdocs)
 define ( "PROJECT",    "OneForAll/build" ); //ALTERE PARA O NOME DO PROJETO
-define ( "ONEFORALL_VERSION", "2.0.2" );
+define ( "ONEFORALL_VERSION", "2.0.5" );
 
 // DADOS DE BANCO (OFFICIAL)
 define ( "BANCO"  , "oseasy-local" ); //ALTERE PARA O NOME DO SEU BANCO
@@ -22,7 +22,10 @@ define ( "SENHA_T"  , ""    ); //ALTERE A SENHA DO SEU SERVIDOR
 
 define ( "MAPPING_DATABASE"  , "TESTE");
 define ( "CHARSET", "utf8mb4" );
-define ( "FORCE_OVERWRITE", true ); // true = regenera engine/ a cada execuÃ§Ã£o
+define ( "FORCE_OVERWRITE", true ); // true = regenera engine/ a cada execução
+// Fuso do armazenamento local (DATETIME naive no MySQL).
+// Na API as datas entram e saem em UTC no formato 31-12-2013T20:11:48Z
+define ( "TIMEZONE", "America/Sao_Paulo" );
 
 //-----------------------------------------------------------------------------------
 
@@ -35,7 +38,7 @@ define ( "DAO", 	   FOLDER . "/dao/" 		);
 define ( "LIBS", 	   FOLDER . "/lib/" 		);
 define ( "UTILS", 	   FOLDER . "/utils/" 		);
 define ( "AUTH", 	   FOLDER . "/auth/" 		);
-date_default_timezone_set ( "America/Sao_Paulo" );
+date_default_timezone_set ( defined('TIMEZONE') ? TIMEZONE : "America/Sao_Paulo" );
 
 //-----------------------DEFINES--------------------------------------
 //-----------------------CREATE_FOLDER--------------------------------------
@@ -105,7 +108,7 @@ function getSchemaName()
 function assertIdent($name)
 {
     if (!preg_match('/^[A-Za-z0-9_]+$/', (string) $name)) {
-        throw new InvalidArgumentException('Identificador SQL invÃ¡lido: ' . $name);
+        throw new InvalidArgumentException('Identificador SQL inválido: ' . $name);
     }
     return $name;
 }
@@ -146,6 +149,12 @@ function showColum($table)
 function shouldGenerateCrud($table)
 {
     return strpos(strtolower((string) $table), 'ofa_') !== 0;
+}
+
+function isDateColumn($type)
+{
+    $t = strtolower(trim(preg_replace('/\(.*$/', '', (string) $type)));
+    return in_array($t, ['date', 'datetime', 'timestamp', 'time'], true);
 }
 
 function getFk($table)
@@ -661,13 +670,16 @@ function createDao()
 
         $str = "<?php
     namespace engine\dao;
+
+    use engine\\utils\\DateTimeCodec;
    		
-    class " . ucfirst($table[0]) . " implements \JsonSerializable {
+    class " . ucfirst($table[0]) . " implements \\JsonSerializable {
 ";
 
         $str .= montaColunasDao($table[0]);
         $str .= montaPrimarys($table[0]);
         $str .= getSerializer($table[0]);
+        $str .= toStorageArrayDao($table[0]);
         $str .= montaGetSetDao($table[0]);
         $str .= '
 	}
@@ -721,36 +733,46 @@ function montaPrimarys($table) {
 }
 
 function getSerializer($table) {
-    $sth = getColum( $table );
-    $cont = 1;
-    
-    $construct = '
-';
-    $construct .= '
-		public function jsonSerialize(): mixed {';
-    $construct .= '
-			return [';
-    
-    $size = $sth->rowCount ();
-    
-    while ( $row = $sth->fetch () ) {
-        
-        $construct .= "
-				'" . $row ['Field'] . '\' =>$this->get' . ucfirst ( $row ['Field'] ) . "()";
-        // echo '<br>'.$cont.'->'.$size;
-        if ($cont < $size) {
-            $construct .= ",";
+    $sth = getColum($table);
+    $lines = [];
+    $hasTimezoneCol = false;
+
+    while ($row = $sth->fetch()) {
+        if (strtolower($row['Field']) === 'timezone') {
+            $hasTimezoneCol = true;
         }
-        
-        $cont ++;
+        $getter = '$this->get' . ucfirst($row['Field']) . '()';
+        if (isDateColumn($row['Type'])) {
+            $lines[] = "				'" . $row['Field'] . "' => DateTimeCodec::toApi(" . $getter . ")";
+        } else {
+            $lines[] = "				'" . $row['Field'] . "' => " . $getter;
+        }
     }
-    // echo "<br><br>";
-    
-    $construct .= '
-			];';
-    $construct .= "
-		}";
-    return $construct;
+
+    if (!$hasTimezoneCol) {
+        $lines[] = "				'timezone' => DateTimeCodec::timezoneName()";
+    }
+
+    return '
+		public function jsonSerialize(): mixed {
+			return [
+' . implode(",\n", $lines) . '
+			];
+		}';
+}
+
+function toStorageArrayDao($table) {
+    $sth = getColum($table);
+    $lines = [];
+    while ($row = $sth->fetch()) {
+        $lines[] = "				'" . $row['Field'] . "' => \$this->" . $row['Field'];
+    }
+    return '
+		public function toStorageArray() {
+			return [
+' . implode(",\n", $lines) . '
+			];
+		}';
 }
 
 function montaGetSetDao($table) {
@@ -768,10 +790,17 @@ function montaGetSetDao($table) {
 		function get' . ucfirst ( $row ['Field'] ) . '() {
 			' . 'return $this->' . $row ['Field'] . ';
 		}';
-        $StringGetSet .= '
+        if (isDateColumn($row['Type'])) {
+            $StringGetSet .= '
+		function set' . ucfirst ( $row ['Field'] ) . '($' . $row ['Field'] . ') {
+			' . 'return $this->' . $row ['Field'] . ' = DateTimeCodec::toStorage($' . $row ['Field'] . ');
+		}';
+        } else {
+            $StringGetSet .= '
 		function set' . ucfirst ( $row ['Field'] ) . '($' . $row ['Field'] . ') {
 			' . 'return $this->' . $row ['Field'] . ' = $' . $row ['Field'] . ';
 		}';
+        }
         
         $StringGetSet .= '
 		';
@@ -931,6 +960,7 @@ function createInteractor() {
         $strHeader = setUseInteractor($strHeader, 'engine\dao');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\FilterWhere');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\ResponseDelete');
+        $strHeader = setUseInteractor($strHeader, 'engine\utils\DateTimeCodec');
         
         $str ="";
         
@@ -969,6 +999,15 @@ function find()
 
     }
 ";
+        }else if(isDateColumn($row['Type'])){
+            $str .= "
+    if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
+		\$where = new FilterWhere();
+		\$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
+		\$where->setValue(DateTimeCodec::toStorage(\$_REQUEST['".strtolower($row['Field'])."']));
+		\$list[]=\$where;
+    }
+";
         }else{
             $str .= "
     if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
@@ -998,7 +1037,7 @@ function find()
     \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
     \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
         
-    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ";
     
                 $str .= "
@@ -1037,6 +1076,15 @@ function findAll()
 		 \$list[]=\$where;
     }
 ";
+            }else if(isDateColumn($row['Type'])){
+                $str .= "
+    if (isset(\$_GET['".strtolower($row['Field'])."'])) {
+         \$where = new FilterWhere();
+		 \$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
+		 \$where->setValue(DateTimeCodec::toStorage(\$_GET['".strtolower($row['Field'])."']));
+		 \$list[]=\$where;
+    }
+";
             }else{
                 $str .= "
     if (isset(\$_GET['".strtolower($row['Field'])."'])) {
@@ -1065,7 +1113,7 @@ function findAll()
     \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
     \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
         
-    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ";
         $str .= "
 }
@@ -1121,7 +1169,7 @@ function remove()
 	}	
 ";
 	$str .= "
-    return json_encode(\$response, JSON_UNESCAPED_UNICODE);
+    return json_encode(\$response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ";
     
     $str .= "
@@ -1172,7 +1220,7 @@ function update()
     \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
     \$result = \$".strtolower($table[0])."Adapter->create(\$".strtolower($table[0]).");
         
-    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ";
     
     $str .="
@@ -1215,7 +1263,7 @@ function create()
     \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
     \$result = \$".strtolower($table[0])."Adapter->create(\$".strtolower($table[0]).");
         
-    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 ";
     
     $str .="       
@@ -1270,7 +1318,7 @@ function getBarramento()
         <div class="card">
             <div class="card-body">
             <h5 class="card-title">Barramento</h5>  
-            <p class="card-text">Todas as suas apis serÃ£o listadas aqui!</p>  
+            <p class="card-text">Todas as suas apis serão listadas aqui!</p>  
             </div>
         </div>
 <?php
@@ -1452,7 +1500,7 @@ function getBarramento()
 
                     $td = \'\';
                     $td .= \'<td scope="row">\';
-                        $td .= \'FunÃ§Ã£o:\';
+                        $td .= \'Função:\';
                     $td .=  \'</td>\';    
 
                     foreach ($permission as $key) {
@@ -1493,7 +1541,7 @@ function getBarramento()
 
                         <div class="form-group">
                                                         
-                            <label for="exampleInputEmail1">FunÃ§Ã£o:</label>                            
+                            <label for="exampleInputEmail1">Função:</label>                            
                             <select>
 <?php
                             foreach ($permission as $key) {
@@ -1503,7 +1551,7 @@ function getBarramento()
                             }
 ?>                            
                             </select>
-                            <small id="emailHelp" class="form-text text-muted">Selecione a funÃ§Ã£o que deseja testar!</small>    
+                            <small id="emailHelp" class="form-text text-muted">Selecione a função que deseja testar!</small>    
 
                         </div>
                         
@@ -1905,14 +1953,16 @@ class Hosts{
     
     private \$oficial   = false;   
     private \$showDebug = false; 
-    private \$banco   = \"\";
-    private \$ip      = \"\";
-    private \$usuario = \"\";
-    private \$senha   = \"\";
-    private \$folder  = \"\";
+    private \$banco    = \"\";
+    private \$ip       = \"\";
+    private \$usuario  = \"\";
+    private \$senha    = \"\";
+    private \$folder   = \"\";
+    private \$timezone = \"\";
     
     
     function __construct() {
+        \$this->timezone = \"" . (defined('TIMEZONE') ? TIMEZONE : 'America/Sao_Paulo') . "\";
         if(\$this->oficial){
             \$this->banco   = \"".BANCO."\";
             \$this->ip      = \"".IP."\";
@@ -1954,6 +2004,11 @@ class Hosts{
     {
         return \$this->showDebug;
     }
+
+    function getTimezone()
+    {
+        return \$this->timezone;
+    }
 }
 ?>";
     
@@ -1988,12 +2043,27 @@ class Connection{
      *            Objeto de dados contendo colunas e valores
      * @return \$object
      */
+    private function objectToRow(\$object)
+    {
+        if (is_object(\$object) && method_exists(\$object, 'toStorageArray')) {
+            return \$object->toStorageArray();
+        }
+        \$row = json_decode(json_encode(\$object), true);
+        if (!is_array(\$row)) {
+            return array();
+        }
+        if (is_object(\$object) && !property_exists(\$object, 'timezone')) {
+            unset(\$row['timezone']);
+        }
+        return \$row;
+    }
+
     private function insert(\$object)
     {
         \$pieces = explode('\\\', get_class(\$object));
         \$nameTable = strtolower(\$pieces[sizeof(\$pieces) - 1]);
 
-        \$json = json_decode(json_encode(\$object), true);
+        \$json = \$this->objectToRow(\$object);
         \$campos = array();
         \$placeholders = array();
         \$params = array();
@@ -2027,7 +2097,7 @@ class Connection{
     }
         
     /**
-     * MÃ¯Â¿Â½todo SQL de UPDATE
+     * Mï¿½todo SQL de UPDATE
      *
      * @param \$object =
      *            Objeto de dados contendo colunas e valores
@@ -2037,7 +2107,7 @@ class Connection{
     {
         \$pieces = explode('\\\', get_class(\$object));
         \$nameTable = strtolower(\$pieces[sizeof(\$pieces) - 1]);
-        \$json = json_decode(json_encode(\$object), true);
+        \$json = \$this->objectToRow(\$object);
         \$keys = \$object->getKeys();
 
         \$sets = array();
@@ -2060,7 +2130,7 @@ class Connection{
         }
 
         if (count(\$wheres) === 0) {
-            throw new \InvalidArgumentException('UPDATE sem chave primÃ¡ria');
+            throw new \InvalidArgumentException('UPDATE sem chave primária');
         }
 
         \$sql = 'UPDATE `' . \$this->bancoName . '`.`' . \$nameTable . '` SET ' . implode(',', \$sets) . ' WHERE ' . implode(' AND ', \$wheres);
@@ -2103,7 +2173,7 @@ class Connection{
         }
 
         if (count(\$wheres) === 0) {
-            throw new \InvalidArgumentException('DELETE sem chave primÃ¡ria');
+            throw new \InvalidArgumentException('DELETE sem chave primária');
         }
 
         \$sql = 'DELETE FROM `' . \$this->bancoName . '`.`' . \$nameTable . '` WHERE ' . implode(' AND ', \$wheres);
@@ -2147,33 +2217,18 @@ class Connection{
         //TO LOWER
         \$nameTable = strtolower(\$nameTable);
         
-        \$tempjson = json_encode(\$object);
-        
-        \$json = json_decode(\$tempjson, true);
-        
-        \$jsonData = array_values(\$json);
-        
         \$list = \$object->getKeys();
         
         
         if (\$list != null) {
         
-            // //PRIMARY KEYS
-            \$listKeys = array_keys(\$list);
-        
-            // //WHERE            
-            
-            \$anding = '';
-        
-            for (\$i = 0; \$i < sizeof(\$listKeys); \$i ++) {
-        
-                if(\$jsonData[\$i] != null){
+            foreach (\$list as \$keyName => \$keyVal) {
+                if(\$keyVal != null && \$keyVal !== ''){
                 	\$where = new FilterWhere();
-                	\$where->setCollum(\$listKeys[\$i]);
-                	\$where->setValue(\$jsonData[\$i]);
+                	\$where->setCollum(\$keyName);
+                	\$where->setValue(\$keyVal);
                 	\$listWhere[] = \$where;
                 }
-        
             }        
             
             if(sizeof(\$listWhere)>0){
@@ -2202,7 +2257,7 @@ class Connection{
         
     /**
      * /**
-     * MÃ©todo SQL de SELECT
+     * Método SQL de SELECT
      *
      * @param String \$table
      * @param FilterWhere \$where
@@ -2333,6 +2388,9 @@ class Connection{
         \$host = new engine\Hosts();
         \$this->bancoName   = \$host->getBanco();
         \$this->showcaseSQL = \$host->getShowDebug();
+        if (method_exists(\$host, 'getTimezone') && \$host->getTimezone() !== '') {
+            date_default_timezone_set(\$host->getTimezone());
+        }
         
         \$dsn = 'mysql:dbname=' . \$host->getBanco() . ';host=' . \$host->getIp().';charset=utf8mb4';
         
@@ -2353,6 +2411,14 @@ class Connection{
         }catch (\Exception \$e){
             error_log(\$e->getMessage());
             exit('Algo estranho aconteceu ao conectar com o Banco de Dados!'); //something a user can understand
+        }
+        \$tzName = method_exists(\$host, 'getTimezone') ? \$host->getTimezone() : '';
+        if (\$tzName !== '') {
+            try {
+                \$offset = (new \\DateTime('now', new \\DateTimeZone(\$tzName)))->format('P');
+                \$this->pdo_->exec('SET time_zone = ' . \$this->pdo_->quote(\$offset));
+            } catch (\\Exception \$ignored) {
+            }
         }
         return \$this->pdo_;
     }
@@ -2442,6 +2508,11 @@ define('URI', \$_SERVER['REQUEST_URI']);
 define('TIME_FLOAT', \$_SERVER['REQUEST_TIME_FLOAT']);
 
 define('BARRA', DIRECTORY_SEPARATOR);
+
+\$hostsTz = new Hosts();
+if (method_exists(\$hostsTz, 'getTimezone') && \$hostsTz->getTimezone() !== '') {
+    date_default_timezone_set(\$hostsTz->getTimezone());
+}
 
 
 
@@ -2570,8 +2641,8 @@ function getRouter() {
     use engine\\auth\\TokenGuard;
     use engine\Acl;
 
-	include_once 'interactor/base.php';
 	include_once '../Autoload.php';
+	include_once 'interactor/base.php';
 
 	\$_GET[\"class\"] = preg_replace('/[^a-z0-9_]/i', '', \$_GET[\"class\"] ?? '');
 	\$_GET[\"method\"] = preg_replace('/[^a-z0-9_]/i', '', \$_GET[\"method\"] ?? '');
@@ -2579,6 +2650,14 @@ function getRouter() {
 
 	if(\$_GET[\"param\"] == 'api'){
 		header(\"Content-type: application/json; charset=UTF-8\");
+	}
+
+	\$hostsTz = new Hosts();
+	if (method_exists(\$hostsTz, 'getTimezone') && \$hostsTz->getTimezone() !== '') {
+		date_default_timezone_set(\$hostsTz->getTimezone());
+		if(\$_GET[\"param\"] == 'api'){
+			header(\"X-Timezone: \" . \$hostsTz->getTimezone());
+		}
 	}
 
 	if (file_exists(__DIR__ . '/auth/TokenGuard.php')) {
@@ -3131,6 +3210,127 @@ class ChromePhp
 	
 }
 
+function getDateTimeCodec()
+{
+    $str = <<<'PHP'
+<?php
+namespace engine\utils;
+
+use engine\Hosts;
+
+class DateTimeCodec
+{
+    const API_FORMAT = 'd-m-Y\TH:i:s\Z';
+
+    private static $tzName;
+
+    public static function timezoneName()
+    {
+        if (self::$tzName === null) {
+            $name = '';
+            if (class_exists('engine\\Hosts')) {
+                $hosts = new Hosts();
+                if (method_exists($hosts, 'getTimezone')) {
+                    $name = (string) $hosts->getTimezone();
+                }
+            }
+            self::$tzName = $name !== '' ? $name : date_default_timezone_get();
+        }
+        return self::$tzName;
+    }
+
+    public static function appTimezone()
+    {
+        return new \DateTimeZone(self::timezoneName());
+    }
+
+    public static function toApi($value)
+    {
+        $dt = self::parse($value);
+        if ($dt === null) {
+            return $value;
+        }
+        $dt->setTimezone(new \DateTimeZone('UTC'));
+        return $dt->format(self::API_FORMAT);
+    }
+
+    public static function toStorage($value)
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+        $dt = self::parse($value);
+        if ($dt === null) {
+            return $value;
+        }
+        $dt->setTimezone(self::appTimezone());
+        return $dt->format('Y-m-d H:i:s');
+    }
+
+    private static function parse($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return \DateTime::createFromInterface($value);
+        }
+
+        $raw = trim((string) $value);
+        $utc = new \DateTimeZone('UTC');
+        $app = self::appTimezone();
+
+        $strict = \DateTime::createFromFormat('!' . self::API_FORMAT, $raw, $utc);
+        if ($strict instanceof \DateTime && self::formatOk($strict)) {
+            return $strict;
+        }
+
+        $withOffset = \DateTime::createFromFormat('!d-m-Y\TH:i:sP', $raw);
+        if ($withOffset instanceof \DateTime && self::formatOk($withOffset)) {
+            return $withOffset;
+        }
+
+        $formats = [
+            ['!Y-m-d\TH:i:s\Z', $utc],
+            ['!Y-m-d\TH:i:sP', null],
+            ['!Y-m-d H:i:s', $app],
+            ['!Y-m-d H:i:s.u', $app],
+            ['!Y-m-d', $app],
+            ['!d-m-Y H:i:s', $app],
+            ['!d/m/Y H:i:s', $app],
+            ['!d-m-Y', $app],
+            ['!d/m/Y', $app],
+            ['!H:i:s', $app],
+        ];
+
+        foreach ($formats as $item) {
+            $fmt = $item[0];
+            $tz = $item[1];
+            $dt = $tz ? \DateTime::createFromFormat($fmt, $raw, $tz) : \DateTime::createFromFormat($fmt, $raw);
+            if ($dt instanceof \DateTime && self::formatOk($dt)) {
+                return $dt;
+            }
+        }
+
+        try {
+            return new \DateTime($raw);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    private static function formatOk(\DateTime $dt)
+    {
+        $errors = \DateTime::getLastErrors();
+        if ($errors === false) {
+            return true;
+        }
+        return empty($errors['warning_count']) && empty($errors['error_count']);
+    }
+}
+PHP;
+    gravar(UTILS . "DateTimeCodec.php", $str);
+}
 
 function getFilterWhere() {
 	$str ="<?php
@@ -3333,14 +3533,14 @@ $project = str_replace('index.php', '', $_SERVER['HTTP_HOST'] . $_SERVER['REQUES
 <div id="urlLocal" style="display:none;">http://<?php echo htmlspecialchars($project, ENT_QUOTES, 'UTF-8'); ?></div>
 <p class="nameOne"><img src="https://adamis.com.br/oru_maito.png" height="64" alt="">OneForAll Framework</p>
 <div id="securityBox" class="security-box">
-<h2>ProteÃ§Ãµes de seguranÃ§a</h2>
-<p>Deseja construir as proteÃ§Ãµes de seguranÃ§a? Se sim, serÃ£o criadas tabelas de usuÃ¡rio e senha, tokens OAuth2 e todas as APIs ficarÃ£o protegidas pelo Bearer token.</p>
+<h2>Proteções de segurança</h2>
+<p>Deseja construir as proteções de segurança? Se sim, serão criadas tabelas de usuário e senha, tokens OAuth2 e todas as APIs ficarão protegidas pelo Bearer token.</p>
 <button class="btn-sec btn-yes" type="button" onclick="startGenerate('1')">Sim, gerar OAuth2</button>
-<button class="btn-sec btn-no" type="button" onclick="startGenerate('0')">NÃ£o, APIs abertas</button>
+<button class="btn-sec btn-no" type="button" onclick="startGenerate('0')">Não, APIs abertas</button>
 </div>
 <table id="tableMain"></table>
 <p id="redir"></p>
-<p class="copiart">Adamis Â© <?php echo date('Y'); ?> OneForAll v{{VERSION}}</p>
+<p class="copiart">Adamis © <?php echo date('Y'); ?> OneForAll v{{VERSION}}</p>
 <div id="error"></div>
 </body>
 </html>
@@ -3361,12 +3561,12 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 		header("Location: index.php");
 		exit;
 	}
-	echo "index.php gerado. Abra no navegador para iniciar a geraÃ§Ã£o.\n";
+	echo "index.php gerado. Abra no navegador para iniciar a geração.\n";
 	exit;
 	
 }else if (!isset ( $_GET ["method"] )) {
 	persistAndReadSecurity();
-	echo "OK,Criando Barramento de InformaÃ§Ãµes,barramento";
+	echo "OK,Criando Barramento de Informações,barramento";
 	
 } else {
 	persistAndReadSecurity();
@@ -3384,9 +3584,9 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	if ($_GET ["method"] == "Autoload") {
 		try {
 			getAutoload ();
-			echo "OK,Criando ConfiguraÃ§Ãµes de Host,host";
+			echo "OK,Criando Configurações de Host,host";
 		} catch (Exception $e) {
-			echo $e.",Criando ConfiguraÃ§Ãµes de Host,host";
+			echo $e.",Criando Configurações de Host,host";
 		}
 		
 	}
@@ -3421,18 +3621,27 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	if ($_GET ["method"] == "filterWhere") {
 		try {
 			getFilterWhere();
-			echo "OK,Criando arquivos de conexÃ£o,connection";
+			echo "OK,Criando codec de datas,dateTimeCodec";
 		} catch (Exception $e) {
-			echo $e.",Criando arquivos de conexÃ£o,connection";
+			echo $e.",Criando codec de datas,dateTimeCodec";
+		}
+	}
+
+	if ($_GET ["method"] == "dateTimeCodec") {
+		try {
+			getDateTimeCodec();
+			echo "OK,Criando arquivos de conexão,connection";
+		} catch (Exception $e) {
+			echo $e.",Criando arquivos de conexão,connection";
 		}
 	}
 	
 	if ($_GET ["method"] == "connection") {
 		try {		
 			getConnection();
-			echo "OK,Criando arquivo de composiÃ§Ã£o,composer";
+			echo "OK,Criando arquivo de composição,composer";
 		} catch (Exception $e) {
-			echo $e.",Criando arquivo de composiÃ§Ã£o,composer";
+			echo $e.",Criando arquivo de composição,composer";
 		}
 	}
 	
@@ -3449,9 +3658,9 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	if ($_GET ["method"] == "htacess") {
 		try {			
 			getHtAccess ();
-			echo "OK,Configurando SeguranÃ§a OAuth2,securitySetup";		
+			echo "OK,Configurando Segurança OAuth2,securitySetup";		
 		} catch (Exception $e) {
-			echo $e.",Configurando SeguranÃ§a OAuth2,securitySetup";
+			echo $e.",Configurando Segurança OAuth2,securitySetup";
 		}
 	}
 

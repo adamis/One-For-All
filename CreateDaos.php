@@ -11,13 +11,16 @@ function createDao()
 
         $str = "<?php
     namespace engine\dao;
+
+    use engine\\utils\\DateTimeCodec;
    		
-    class " . ucfirst($table[0]) . " implements \JsonSerializable {
+    class " . ucfirst($table[0]) . " implements \\JsonSerializable {
 ";
 
         $str .= montaColunasDao($table[0]);
         $str .= montaPrimarys($table[0]);
         $str .= getSerializer($table[0]);
+        $str .= toStorageArrayDao($table[0]);
         $str .= montaGetSetDao($table[0]);
         $str .= '
 	}
@@ -71,36 +74,46 @@ function montaPrimarys($table) {
 }
 
 function getSerializer($table) {
-    $sth = getColum( $table );
-    $cont = 1;
-    
-    $construct = '
-';
-    $construct .= '
-		public function jsonSerialize(): mixed {';
-    $construct .= '
-			return [';
-    
-    $size = $sth->rowCount ();
-    
-    while ( $row = $sth->fetch () ) {
-        
-        $construct .= "
-				'" . $row ['Field'] . '\' =>$this->get' . ucfirst ( $row ['Field'] ) . "()";
-        // echo '<br>'.$cont.'->'.$size;
-        if ($cont < $size) {
-            $construct .= ",";
+    $sth = getColum($table);
+    $lines = [];
+    $hasTimezoneCol = false;
+
+    while ($row = $sth->fetch()) {
+        if (strtolower($row['Field']) === 'timezone') {
+            $hasTimezoneCol = true;
         }
-        
-        $cont ++;
+        $getter = '$this->get' . ucfirst($row['Field']) . '()';
+        if (isDateColumn($row['Type'])) {
+            $lines[] = "				'" . $row['Field'] . "' => DateTimeCodec::toApi(" . $getter . ")";
+        } else {
+            $lines[] = "				'" . $row['Field'] . "' => " . $getter;
+        }
     }
-    // echo "<br><br>";
-    
-    $construct .= '
-			];';
-    $construct .= "
-		}";
-    return $construct;
+
+    if (!$hasTimezoneCol) {
+        $lines[] = "				'timezone' => DateTimeCodec::timezoneName()";
+    }
+
+    return '
+		public function jsonSerialize(): mixed {
+			return [
+' . implode(",\n", $lines) . '
+			];
+		}';
+}
+
+function toStorageArrayDao($table) {
+    $sth = getColum($table);
+    $lines = [];
+    while ($row = $sth->fetch()) {
+        $lines[] = "				'" . $row['Field'] . "' => \$this->" . $row['Field'];
+    }
+    return '
+		public function toStorageArray() {
+			return [
+' . implode(",\n", $lines) . '
+			];
+		}';
 }
 
 function montaGetSetDao($table) {
@@ -118,10 +131,17 @@ function montaGetSetDao($table) {
 		function get' . ucfirst ( $row ['Field'] ) . '() {
 			' . 'return $this->' . $row ['Field'] . ';
 		}';
-        $StringGetSet .= '
+        if (isDateColumn($row['Type'])) {
+            $StringGetSet .= '
+		function set' . ucfirst ( $row ['Field'] ) . '($' . $row ['Field'] . ') {
+			' . 'return $this->' . $row ['Field'] . ' = DateTimeCodec::toStorage($' . $row ['Field'] . ');
+		}';
+        } else {
+            $StringGetSet .= '
 		function set' . ucfirst ( $row ['Field'] ) . '($' . $row ['Field'] . ') {
 			' . 'return $this->' . $row ['Field'] . ' = $' . $row ['Field'] . ';
 		}';
+        }
         
         $StringGetSet .= '
 		';

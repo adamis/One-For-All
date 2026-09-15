@@ -4,7 +4,7 @@
 
 // NOME DA PASTA DO PROJETO (caminho web a partir do htdocs)
 define ( "PROJECT",    "OneForAll/build" ); //ALTERE PARA O NOME DO PROJETO
-define ( "ONEFORALL_VERSION", "2.0.2" );
+define ( "ONEFORALL_VERSION", "2.0.5" );
 
 // DADOS DE BANCO (OFFICIAL)
 define ( "BANCO"  , "oseasy-local" ); //ALTERE PARA O NOME DO SEU BANCO
@@ -20,7 +20,10 @@ define ( "SENHA_T"  , ""    ); //ALTERE A SENHA DO SEU SERVIDOR
 
 define ( "MAPPING_DATABASE"  , "TESTE");
 define ( "CHARSET", "utf8mb4" );
-define ( "FORCE_OVERWRITE", true ); // true = regenera engine/ a cada execuÃ§Ã£o
+define ( "FORCE_OVERWRITE", true ); // true = regenera engine/ a cada execução
+// Fuso do armazenamento local (DATETIME naive no MySQL).
+// Na API as datas entram e saem em UTC no formato 31-12-2013T20:11:48Z
+define ( "TIMEZONE", "America/Sao_Paulo" );
 
 //-----------------------------------------------------------------------------------
 
@@ -33,7 +36,7 @@ define ( "DAO", 	   FOLDER . "/dao/" 		);
 define ( "LIBS", 	   FOLDER . "/lib/" 		);
 define ( "UTILS", 	   FOLDER . "/utils/" 		);
 define ( "AUTH", 	   FOLDER . "/auth/" 		);
-date_default_timezone_set ( "America/Sao_Paulo" );
+date_default_timezone_set ( defined('TIMEZONE') ? TIMEZONE : "America/Sao_Paulo" );
 
 //-----------------------DEFINES--------------------------------------
 //-----------------------CREATE_FOLDER--------------------------------------

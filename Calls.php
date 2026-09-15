@@ -69,6 +69,15 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	if ($_GET ["method"] == "filterWhere") {
 		try {
 			getFilterWhere();
+			echo "OK,Criando codec de datas,dateTimeCodec";
+		} catch (Exception $e) {
+			echo $e.",Criando codec de datas,dateTimeCodec";
+		}
+	}
+
+	if ($_GET ["method"] == "dateTimeCodec") {
+		try {
+			getDateTimeCodec();
 			echo "OK,Criando arquivos de conexão,connection";
 		} catch (Exception $e) {
 			echo $e.",Criando arquivos de conexão,connection";
