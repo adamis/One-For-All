@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -95,6 +95,42 @@ function find()
 
     }
 
+    if (isset($_REQUEST['anexos'])) {
+
+		$where = new FilterWhere();       
+		$where->setCollum('chamados.anexos');
+        $where->setCondition('like');
+		$where->setValue('%'.$_REQUEST['anexos'].'%');
+		$list[]=$where;
+        
+    }
+    if (isset($_REQUEST['como_reproduzir'])) {
+
+		$where = new FilterWhere();       
+		$where->setCollum('chamados.como_reproduzir');
+        $where->setCondition('like');
+		$where->setValue('%'.$_REQUEST['como_reproduzir'].'%');
+		$list[]=$where;
+        
+    }
+    if (isset($_REQUEST['prioridade'])) {
+
+		$where = new FilterWhere();       
+		$where->setCollum('chamados.prioridade');
+        $where->setCondition('like');
+		$where->setValue('%'.$_REQUEST['prioridade'].'%');
+		$list[]=$where;
+        
+    } 
+    if(isset($_REQUEST['fk_usuario_criador_id'])) {
+ 
+		 $where = new FilterWhere();       
+		 $where->setCollum('chamados.fk_usuario_criador_id');         
+		 $where->setValue($_REQUEST['fk_usuario_criador_id']);
+		 $list[]=$where;
+
+    }
+
 
  	if (isset($_REQUEST['page'])) {
     	$page = $_REQUEST['page'];
@@ -104,10 +140,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $chamadosDao = new dao\ChamadosDao($connection);
-    $result = $chamadosDao->getAll($list, "", "", $page, $pageSize);
+    $chamadosAdapter = new adapter\ChamadosAdapter($connection);
+    $result = $chamadosAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -185,6 +221,34 @@ function findAll()
 		 $list[]=$where;
     }
 
+    if (isset($_GET['anexos'])) {
+       $where = new FilterWhere();       
+		$where->setCollum('chamados.anexos');
+        $where->setCondition('like');
+		$where->setValue('%'.$_GET['anexos'].'%');
+		$list[]=$where;
+    }
+    if (isset($_GET['como_reproduzir'])) {
+       $where = new FilterWhere();       
+		$where->setCollum('chamados.como_reproduzir');
+        $where->setCondition('like');
+		$where->setValue('%'.$_GET['como_reproduzir'].'%');
+		$list[]=$where;
+    }
+    if (isset($_GET['prioridade'])) {
+       $where = new FilterWhere();       
+		$where->setCollum('chamados.prioridade');
+        $where->setCondition('like');
+		$where->setValue('%'.$_GET['prioridade'].'%');
+		$list[]=$where;
+    }
+    if (isset($_GET['fk_usuario_criador_id'])) {
+         $where = new FilterWhere();       
+		 $where->setCollum('chamados.fk_usuario_criador_id');         
+		 $where->setValue($_GET['fk_usuario_criador_id']);
+		 $list[]=$where;
+    }
+
         		
  	if (isset($_REQUEST['page'])) {
     	$page = $_REQUEST['page'];
@@ -194,10 +258,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $chamadosDao = new dao\ChamadosDao($connection);
-    $result = $chamadosDao->getAll($list, "", "", $page, $pageSize);
+    $chamadosAdapter = new adapter\ChamadosAdapter($connection);
+    $result = $chamadosAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -206,7 +270,7 @@ function findAll()
  */
 function remove()
 {
-    $chamados = new model\Chamados();
+    $chamados = new dao\Chamados();
 
     if (isset($_GET['id'])) {        
         $chamados->setId($_GET['id']);
@@ -239,9 +303,22 @@ function remove()
         $chamados->setFk_status_id($_GET['fk_status_id']);
     }
 
+    if (isset($_GET['anexos'])) {
+        $chamados->setAnexos($_GET['anexos']);
+    }
+    if (isset($_GET['como_reproduzir'])) {
+        $chamados->setComo_reproduzir($_GET['como_reproduzir']);
+    }
+    if (isset($_GET['prioridade'])) {
+        $chamados->setPrioridade($_GET['prioridade']);
+    }
+    if (isset($_GET['fk_usuario_criador_id'])) {
+        $chamados->setFk_usuario_criador_id($_GET['fk_usuario_criador_id']);
+    }
+
     $connection = new connection\Connection();
-    $chamadosDao = new dao\ChamadosDao($connection);
-    $result = $chamadosDao->delete($chamados);
+    $chamadosAdapter = new adapter\ChamadosAdapter($connection);
+    $result = $chamadosAdapter->delete($chamados);
 
     
 	$response = new ResponseDelete();
@@ -252,7 +329,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -261,7 +338,7 @@ function remove()
  */
 function update()
 {
- $chamados = new model\Chamados();
+ $chamados = new dao\Chamados();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -301,11 +378,24 @@ function update()
         $chamados->setFk_status_id($post_vars['fk_status_id']);
     }
 
+    if (isset($post_vars['anexos'])) {
+        $chamados->setAnexos($post_vars['anexos']);
+    }
+    if (isset($post_vars['como_reproduzir'])) {
+        $chamados->setComo_reproduzir($post_vars['como_reproduzir']);
+    }
+    if (isset($post_vars['prioridade'])) {
+        $chamados->setPrioridade($post_vars['prioridade']);
+    }
+    if (isset($post_vars['fk_usuario_criador_id'])) {
+        $chamados->setFk_usuario_criador_id($post_vars['fk_usuario_criador_id']);
+    }
+
     $connection = new connection\Connection();
-    $chamadosDao = new dao\ChamadosDao($connection);
-    $result = $chamadosDao->create($chamados);
+    $chamadosAdapter = new adapter\ChamadosAdapter($connection);
+    $result = $chamadosAdapter->create($chamados);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -314,7 +404,7 @@ function update()
  */
 function create()
 {
-    $chamados = new model\Chamados();
+    $chamados = new dao\Chamados();
 
     if (isset($_REQUEST['id'])) {        
         $chamados->setId($_REQUEST['id']);
@@ -347,11 +437,24 @@ function create()
         $chamados->setFk_status_id($_REQUEST['fk_status_id']);
     }
 
+    if (isset($_REQUEST['anexos'])) {
+        $chamados->setAnexos($_REQUEST['anexos']);
+    }
+    if (isset($_REQUEST['como_reproduzir'])) {
+        $chamados->setComo_reproduzir($_REQUEST['como_reproduzir']);
+    }
+    if (isset($_REQUEST['prioridade'])) {
+        $chamados->setPrioridade($_REQUEST['prioridade']);
+    }
+    if (isset($_REQUEST['fk_usuario_criador_id'])) {
+        $chamados->setFk_usuario_criador_id($_REQUEST['fk_usuario_criador_id']);
+    }
+
     $connection = new connection\Connection();
-    $chamadosDao = new dao\ChamadosDao($connection);
-    $result = $chamadosDao->create($chamados);
+    $chamadosAdapter = new adapter\ChamadosAdapter($connection);
+    $result = $chamadosAdapter->create($chamados);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

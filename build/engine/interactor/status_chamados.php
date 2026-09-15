@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -59,10 +59,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $status_chamadosDao = new dao\Status_chamadosDao($connection);
-    $result = $status_chamadosDao->getAll($list, "", "", $page, $pageSize);
+    $status_chamadosAdapter = new adapter\Status_chamadosAdapter($connection);
+    $result = $status_chamadosAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -114,10 +114,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $status_chamadosDao = new dao\Status_chamadosDao($connection);
-    $result = $status_chamadosDao->getAll($list, "", "", $page, $pageSize);
+    $status_chamadosAdapter = new adapter\Status_chamadosAdapter($connection);
+    $result = $status_chamadosAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -126,7 +126,7 @@ function findAll()
  */
 function remove()
 {
-    $status_chamados = new model\Status_chamados();
+    $status_chamados = new dao\Status_chamados();
 
     if (isset($_GET['id'])) {        
         $status_chamados->setId($_GET['id']);
@@ -142,8 +142,8 @@ function remove()
         $status_chamados->setDescricao($_GET['descricao']);
     }
     $connection = new connection\Connection();
-    $status_chamadosDao = new dao\Status_chamadosDao($connection);
-    $result = $status_chamadosDao->delete($status_chamados);
+    $status_chamadosAdapter = new adapter\Status_chamadosAdapter($connection);
+    $result = $status_chamadosAdapter->delete($status_chamados);
 
     
 	$response = new ResponseDelete();
@@ -154,7 +154,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -163,7 +163,7 @@ function remove()
  */
 function update()
 {
- $status_chamados = new model\Status_chamados();
+ $status_chamados = new dao\Status_chamados();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -186,10 +186,10 @@ function update()
         $status_chamados->setDescricao($post_vars['descricao']);
     }
     $connection = new connection\Connection();
-    $status_chamadosDao = new dao\Status_chamadosDao($connection);
-    $result = $status_chamadosDao->create($status_chamados);
+    $status_chamadosAdapter = new adapter\Status_chamadosAdapter($connection);
+    $result = $status_chamadosAdapter->create($status_chamados);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -198,7 +198,7 @@ function update()
  */
 function create()
 {
-    $status_chamados = new model\Status_chamados();
+    $status_chamados = new dao\Status_chamados();
 
     if (isset($_REQUEST['id'])) {        
         $status_chamados->setId($_REQUEST['id']);
@@ -214,10 +214,10 @@ function create()
         $status_chamados->setDescricao($_REQUEST['descricao']);
     }
     $connection = new connection\Connection();
-    $status_chamadosDao = new dao\Status_chamadosDao($connection);
-    $result = $status_chamadosDao->create($status_chamados);
+    $status_chamadosAdapter = new adapter\Status_chamadosAdapter($connection);
+    $result = $status_chamadosAdapter->create($status_chamados);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

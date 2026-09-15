@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -59,10 +59,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $perfisDao = new dao\PerfisDao($connection);
-    $result = $perfisDao->getAll($list, "", "", $page, $pageSize);
+    $perfisAdapter = new adapter\PerfisAdapter($connection);
+    $result = $perfisAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -114,10 +114,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $perfisDao = new dao\PerfisDao($connection);
-    $result = $perfisDao->getAll($list, "", "", $page, $pageSize);
+    $perfisAdapter = new adapter\PerfisAdapter($connection);
+    $result = $perfisAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -126,7 +126,7 @@ function findAll()
  */
 function remove()
 {
-    $perfis = new model\Perfis();
+    $perfis = new dao\Perfis();
 
     if (isset($_GET['id'])) {        
         $perfis->setId($_GET['id']);
@@ -142,8 +142,8 @@ function remove()
         $perfis->setName($_GET['name']);
     }
     $connection = new connection\Connection();
-    $perfisDao = new dao\PerfisDao($connection);
-    $result = $perfisDao->delete($perfis);
+    $perfisAdapter = new adapter\PerfisAdapter($connection);
+    $result = $perfisAdapter->delete($perfis);
 
     
 	$response = new ResponseDelete();
@@ -154,7 +154,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -163,7 +163,7 @@ function remove()
  */
 function update()
 {
- $perfis = new model\Perfis();
+ $perfis = new dao\Perfis();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -186,10 +186,10 @@ function update()
         $perfis->setName($post_vars['name']);
     }
     $connection = new connection\Connection();
-    $perfisDao = new dao\PerfisDao($connection);
-    $result = $perfisDao->create($perfis);
+    $perfisAdapter = new adapter\PerfisAdapter($connection);
+    $result = $perfisAdapter->create($perfis);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -198,7 +198,7 @@ function update()
  */
 function create()
 {
-    $perfis = new model\Perfis();
+    $perfis = new dao\Perfis();
 
     if (isset($_REQUEST['id'])) {        
         $perfis->setId($_REQUEST['id']);
@@ -214,10 +214,10 @@ function create()
         $perfis->setName($_REQUEST['name']);
     }
     $connection = new connection\Connection();
-    $perfisDao = new dao\PerfisDao($connection);
-    $result = $perfisDao->create($perfis);
+    $perfisAdapter = new adapter\PerfisAdapter($connection);
+    $result = $perfisAdapter->create($perfis);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

@@ -1,95 +1,120 @@
 <?php
 //-----------------------SQL_STRUCT--------------------------------------
 
-function getConection() {
-    
-	if(MAPPING_DATABASE == "TESTE"){
-    	$pdo_ = new PDO ( 'mysql:dbname=' . BANCO_T . ';host=' . IP_T, USUARIO_T, SENHA_T);
-    }else{
-    	$pdo_ = new PDO ( 'mysql:dbname=' . BANCO . ';host=' . IP, USUARIO, SENHA );
+function getSchemaName()
+{
+    return MAPPING_DATABASE == "TESTE" ? BANCO_T : BANCO;
+}
+
+function assertIdent($name)
+{
+    if (!preg_match('/^[A-Za-z0-9_]+$/', (string) $name)) {
+        throw new InvalidArgumentException('Identificador SQL inválido: ' . $name);
     }
-    
-    $pdo_->setAttribute ( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );
-    
+    return $name;
+}
+
+function getConection()
+{
+    $schema  = getSchemaName();
+    $host    = MAPPING_DATABASE == "TESTE" ? IP_T : IP;
+    $user    = MAPPING_DATABASE == "TESTE" ? USUARIO_T : USUARIO;
+    $pass    = MAPPING_DATABASE == "TESTE" ? SENHA_T : SENHA;
+    $charset = defined('CHARSET') ? CHARSET : 'utf8mb4';
+
+    $pdo_ = new PDO(
+        'mysql:dbname=' . $schema . ';host=' . $host . ';charset=' . $charset,
+        $user,
+        $pass
+    );
+    $pdo_->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo_->exec('SET NAMES ' . assertIdent($charset));
+
     return $pdo_;
 }
 
-function getAllTables() {
-    
+function getAllTables()
+{
     $pdo_ = getConection();
-    $query = ' SHOW TABLES ';
+    $sth = $pdo_->prepare('SHOW TABLES');
+    $sth->execute();
+
+    return $sth;
+}
+
+function showColum($table)
+{
+    return getColum($table);
+}
+
+function shouldGenerateCrud($table)
+{
+    return strpos(strtolower((string) $table), 'ofa_') !== 0;
+}
+
+function getFk($table)
+{
+    $pdo_ = getConection();
+    $query = 'SELECT
+                table_name AS tabela,
+                column_name AS coluna,
+                referenced_table_name AS tabela_referencia,
+                referenced_column_name AS coluna_referencia
+              FROM information_schema.key_column_usage
+              WHERE TABLE_SCHEMA = :schema
+                AND TABLE_NAME = :table
+                AND referenced_table_name IS NOT NULL';
+
+    $sth = $pdo_->prepare($query);
+    $sth->execute([
+        ':schema' => getSchemaName(),
+        ':table'  => assertIdent($table),
+    ]);
+
+    return $sth;
+}
+
+function getFkTable($table, $fk)
+{
+    $pdo_ = getConection();
+    $query = 'SELECT
+                table_name AS tabela,
+                column_name AS coluna,
+                referenced_table_name AS tabela_referencia,
+                referenced_column_name AS coluna_referencia
+              FROM information_schema.key_column_usage
+              WHERE TABLE_SCHEMA = :schema
+                AND TABLE_NAME = :table
+                AND column_name = :fk
+                AND referenced_table_name IS NOT NULL';
+
+    $sth = $pdo_->prepare($query);
+    $sth->execute([
+        ':schema' => getSchemaName(),
+        ':table'  => assertIdent($table),
+        ':fk'     => assertIdent($fk),
+    ]);
+
+    return $sth;
+}
+
+function getPrimaryKeys($table)
+{
+    $pdo_ = getConection();
+    $sql = 'SHOW KEYS FROM `' . getSchemaName() . '`.`' . assertIdent($table) . '` WHERE Key_name = \'PRIMARY\'';
+    $sth = $pdo_->prepare($sql);
+    $sth->execute();
+
+    return $sth;
+}
+
+function getColum($table)
+{
+    $pdo_ = getConection();
+    $query = 'SHOW COLUMNS FROM `' . getSchemaName() . '`.`' . assertIdent($table) . '`';
     $sth = $pdo_->prepare($query);
     $sth->execute();
-    
-    return $sth;
-}
 
-function showColum($table) {
-    
-    $pdo_ = getConection();
-    $query = 'SHOW COLUMNS FROM `' . (MAPPING_DATABASE =="TESTE"?BANCO_T:BANCO). '`.`' . $table . '`';
-    $sth = $pdo_->prepare( $query );
-    $sth->execute ();
-    
     return $sth;
-}
-
-function getFk($table) {
-    $pdo_ = getConection();
-    $query = 'select
-				table_name as \'tabela\',
-    			column_name as \'coluna\',
-				referenced_table_name as \'tabela_referencia\' ,
-    			referenced_column_name as \'coluna_referencia\'
-			  from
-    			information_schema.key_column_usage
-			  where	TABLE_NAME = \'' . $table . '\'
-			  AND 	referenced_table_name is not null';
-        
-    $sth = $pdo_->prepare( $query );
-    $sth->execute();
-    
-    return $sth;
-}
-
-function getFkTable($table,$fk) {
-    $pdo_ = getConection();
-    $query = '
-    SELECT
-        table_name AS tabela,
-        column_name AS coluna,
-        referenced_table_name AS tabela_referencia,
-        referenced_column_name AS coluna_referencia
-    FROM
-        information_schema.key_column_usage
-    WHERE
-        TABLE_NAME = \''.$table.'\'
-    AND referenced_table_name IS NOT NULL
-    AND column_name = \''.$fk.'\'';
-    
-    $sth = $pdo_->prepare( $query );
-    $sth->execute();
-    
-    return $sth;
-}
-
-function getPrimaryKeys($table) {
-    $pdo_ = getConection();
-    $sql = 'SHOW KEYS FROM `'. (MAPPING_DATABASE =="TESTE"?BANCO_T:BANCO). '`.`' . $table.'`  WHERE Key_name = \'PRIMARY\'';  
-    $sth = $pdo_->prepare( $sql );
-    $sth->execute();
-    
-    return $sth;
-}
-
-function getColum($table) {
-    
-    $pdo_ = getConection();
-    $query = 'SHOW COLUMNS FROM `' . (MAPPING_DATABASE =="TESTE"?BANCO_T:BANCO). '`.`' . $table . '`';
-    $sth = $pdo_->prepare( $query );
-    $sth->execute();
-    
-    return $sth;    
 }
 //-----------------------SQL_STRUCT--------------------------------------
-?>

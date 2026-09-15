@@ -6,12 +6,15 @@ function createInteractor() {
     $tables = getAllTables();
     
     while ($table = $tables->fetch()) {
+        if (!shouldGenerateCrud($table[0])) {
+            continue;
+        }
         
         $strHeader = "<?php    
 ";
-        $strHeader = setUseInteractor($strHeader, 'engine\dao');
+        $strHeader = setUseInteractor($strHeader, 'engine\adapter');
         $strHeader = setUseInteractor($strHeader, 'engine\connection');
-        $strHeader = setUseInteractor($strHeader, 'engine\model');
+        $strHeader = setUseInteractor($strHeader, 'engine\dao');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\FilterWhere');
         $strHeader = setUseInteractor($strHeader, 'engine\utils\ResponseDelete');
         
@@ -78,10 +81,10 @@ function find()
     
             $str .= "
     \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Dao = new dao\\".ucfirst($table[0])."Dao(\$connection);
-    \$result = \$".strtolower($table[0])."Dao->getAll(\$list, \"\", \"\", \$page, \$pageSize);
+    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
+    \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
         
-    return json_encode(\$result);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
 ";
     
                 $str .= "
@@ -145,22 +148,21 @@ function findAll()
         
         $str .= "
     \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Dao = new dao\\".ucfirst($table[0])."Dao(\$connection);
-    \$result = \$".strtolower($table[0])."Dao->getAll(\$list, \"\", \"\", \$page, \$pageSize);
+    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
+    \$result = \$".strtolower($table[0])."Adapter->getAll(\$list, \"\", \"\", \$page, \$pageSize);
         
-    return json_encode(\$result);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
 ";
         $str .= "
 }
 "; 
-
         $str .= "
 /**
  * Delete
  */
 function remove()
 {
-    \$".strtolower($table[0])." = new model\\".ucfirst($table[0])."();
+    \$".strtolower($table[0])." = new dao\\".ucfirst($table[0])."();
 ";
     $coluns = getColum($table[0]);
                 
@@ -191,8 +193,8 @@ function remove()
     
     $str .= "
     \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Dao = new dao\\".ucfirst($table[0])."Dao(\$connection);
-    \$result = \$".strtolower($table[0])."Dao->delete(\$".strtolower($table[0]).");
+    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
+    \$result = \$".strtolower($table[0])."Adapter->delete(\$".strtolower($table[0]).");
 
     ";    
 	$str .= "
@@ -205,7 +207,7 @@ function remove()
 	}	
 ";
 	$str .= "
-    return json_encode(\$response);
+    return json_encode(\$response, JSON_UNESCAPED_UNICODE);
 ";
     
     $str .= "
@@ -217,7 +219,7 @@ function remove()
  */
 function update()
 {
- \$".strtolower($table[0])." = new model\\".ucfirst($table[0])."();
+ \$".strtolower($table[0])." = new dao\\".ucfirst($table[0])."();
 ";
     $str .="
 	\$post_vars = getParametersPUT();
@@ -253,10 +255,10 @@ function update()
     }
     $str .= "
     \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Dao = new dao\\".ucfirst($table[0])."Dao(\$connection);
-    \$result = \$".strtolower($table[0])."Dao->create(\$".strtolower($table[0]).");
+    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
+    \$result = \$".strtolower($table[0])."Adapter->create(\$".strtolower($table[0]).");
         
-    return json_encode(\$result);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
 ";
     
     $str .="
@@ -269,7 +271,7 @@ function update()
  */
 function create()
 {
-    \$".strtolower($table[0])." = new model\\".ucfirst($table[0])."();
+    \$".strtolower($table[0])." = new dao\\".ucfirst($table[0])."();
 ";
     $coluns = getColum($table[0]);
                 
@@ -296,10 +298,10 @@ function create()
     }
     $str .= "
     \$connection = new connection\Connection();
-    \$".strtolower($table[0])."Dao = new dao\\".ucfirst($table[0])."Dao(\$connection);
-    \$result = \$".strtolower($table[0])."Dao->create(\$".strtolower($table[0]).");
+    \$".strtolower($table[0])."Adapter = new adapter\\".ucfirst($table[0])."Adapter(\$connection);
+    \$result = \$".strtolower($table[0])."Adapter->create(\$".strtolower($table[0]).");
         
-    return json_encode(\$result);
+    return json_encode(\$result, JSON_UNESCAPED_UNICODE);
 ";
     
     $str .="       

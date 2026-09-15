@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -140,10 +140,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $dados_adamis_cnpjDao = new dao\Dados_adamis_cnpjDao($connection);
-    $result = $dados_adamis_cnpjDao->getAll($list, "", "", $page, $pageSize);
+    $dados_adamis_cnpjAdapter = new adapter\Dados_adamis_cnpjAdapter($connection);
+    $result = $dados_adamis_cnpjAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -258,10 +258,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $dados_adamis_cnpjDao = new dao\Dados_adamis_cnpjDao($connection);
-    $result = $dados_adamis_cnpjDao->getAll($list, "", "", $page, $pageSize);
+    $dados_adamis_cnpjAdapter = new adapter\Dados_adamis_cnpjAdapter($connection);
+    $result = $dados_adamis_cnpjAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -270,7 +270,7 @@ function findAll()
  */
 function remove()
 {
-    $dados_adamis_cnpj = new model\Dados_adamis_cnpj();
+    $dados_adamis_cnpj = new dao\Dados_adamis_cnpj();
 
     if (isset($_GET['id'])) {        
         $dados_adamis_cnpj->setId($_GET['id']);
@@ -314,8 +314,8 @@ function remove()
         $dados_adamis_cnpj->setTipo_logradouro($_GET['tipo_logradouro']);
     }
     $connection = new connection\Connection();
-    $dados_adamis_cnpjDao = new dao\Dados_adamis_cnpjDao($connection);
-    $result = $dados_adamis_cnpjDao->delete($dados_adamis_cnpj);
+    $dados_adamis_cnpjAdapter = new adapter\Dados_adamis_cnpjAdapter($connection);
+    $result = $dados_adamis_cnpjAdapter->delete($dados_adamis_cnpj);
 
     
 	$response = new ResponseDelete();
@@ -326,7 +326,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -335,7 +335,7 @@ function remove()
  */
 function update()
 {
- $dados_adamis_cnpj = new model\Dados_adamis_cnpj();
+ $dados_adamis_cnpj = new dao\Dados_adamis_cnpj();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -386,10 +386,10 @@ function update()
         $dados_adamis_cnpj->setTipo_logradouro($post_vars['tipo_logradouro']);
     }
     $connection = new connection\Connection();
-    $dados_adamis_cnpjDao = new dao\Dados_adamis_cnpjDao($connection);
-    $result = $dados_adamis_cnpjDao->create($dados_adamis_cnpj);
+    $dados_adamis_cnpjAdapter = new adapter\Dados_adamis_cnpjAdapter($connection);
+    $result = $dados_adamis_cnpjAdapter->create($dados_adamis_cnpj);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -398,7 +398,7 @@ function update()
  */
 function create()
 {
-    $dados_adamis_cnpj = new model\Dados_adamis_cnpj();
+    $dados_adamis_cnpj = new dao\Dados_adamis_cnpj();
 
     if (isset($_REQUEST['id'])) {        
         $dados_adamis_cnpj->setId($_REQUEST['id']);
@@ -442,10 +442,10 @@ function create()
         $dados_adamis_cnpj->setTipo_logradouro($_REQUEST['tipo_logradouro']);
     }
     $connection = new connection\Connection();
-    $dados_adamis_cnpjDao = new dao\Dados_adamis_cnpjDao($connection);
-    $result = $dados_adamis_cnpjDao->create($dados_adamis_cnpj);
+    $dados_adamis_cnpjAdapter = new adapter\Dados_adamis_cnpjAdapter($connection);
+    $result = $dados_adamis_cnpjAdapter->create($dados_adamis_cnpj);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

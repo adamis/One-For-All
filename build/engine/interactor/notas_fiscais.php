@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -58,12 +58,21 @@ function find()
 		$where->setValue('%'.$_REQUEST['numero_nota_fiscal'].'%');
 		$list[]=$where;
         
+    }
+    if (isset($_REQUEST['valor'])) {
+
+		$where = new FilterWhere();       
+		$where->setCollum('notas_fiscais.valor');
+        $where->setCondition('like');
+		$where->setValue('%'.$_REQUEST['valor'].'%');
+		$list[]=$where;
+        
     } 
-    if(isset($_REQUEST['valor'])) {
+    if(isset($_REQUEST['fk_condominio_id'])) {
  
 		 $where = new FilterWhere();       
-		 $where->setCollum('notas_fiscais.valor');         
-		 $where->setValue($_REQUEST['valor']);
+		 $where->setCollum('notas_fiscais.fk_condominio_id');         
+		 $where->setValue($_REQUEST['fk_condominio_id']);
 		 $list[]=$where;
 
     }
@@ -77,10 +86,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $notas_fiscaisDao = new dao\Notas_fiscaisDao($connection);
-    $result = $notas_fiscaisDao->getAll($list, "", "", $page, $pageSize);
+    $notas_fiscaisAdapter = new adapter\Notas_fiscaisAdapter($connection);
+    $result = $notas_fiscaisAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -131,9 +140,16 @@ function findAll()
 		$list[]=$where;
     }
     if (isset($_GET['valor'])) {
+       $where = new FilterWhere();       
+		$where->setCollum('notas_fiscais.valor');
+        $where->setCondition('like');
+		$where->setValue('%'.$_GET['valor'].'%');
+		$list[]=$where;
+    }
+    if (isset($_GET['fk_condominio_id'])) {
          $where = new FilterWhere();       
-		 $where->setCollum('notas_fiscais.valor');         
-		 $where->setValue($_GET['valor']);
+		 $where->setCollum('notas_fiscais.fk_condominio_id');         
+		 $where->setValue($_GET['fk_condominio_id']);
 		 $list[]=$where;
     }
 
@@ -146,10 +162,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $notas_fiscaisDao = new dao\Notas_fiscaisDao($connection);
-    $result = $notas_fiscaisDao->getAll($list, "", "", $page, $pageSize);
+    $notas_fiscaisAdapter = new adapter\Notas_fiscaisAdapter($connection);
+    $result = $notas_fiscaisAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -158,7 +174,7 @@ function findAll()
  */
 function remove()
 {
-    $notas_fiscais = new model\Notas_fiscais();
+    $notas_fiscais = new dao\Notas_fiscais();
 
     if (isset($_GET['id'])) {        
         $notas_fiscais->setId($_GET['id']);
@@ -179,10 +195,13 @@ function remove()
     if (isset($_GET['valor'])) {
         $notas_fiscais->setValor($_GET['valor']);
     }
+    if (isset($_GET['fk_condominio_id'])) {
+        $notas_fiscais->setFk_condominio_id($_GET['fk_condominio_id']);
+    }
 
     $connection = new connection\Connection();
-    $notas_fiscaisDao = new dao\Notas_fiscaisDao($connection);
-    $result = $notas_fiscaisDao->delete($notas_fiscais);
+    $notas_fiscaisAdapter = new adapter\Notas_fiscaisAdapter($connection);
+    $result = $notas_fiscaisAdapter->delete($notas_fiscais);
 
     
 	$response = new ResponseDelete();
@@ -193,7 +212,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -202,7 +221,7 @@ function remove()
  */
 function update()
 {
- $notas_fiscais = new model\Notas_fiscais();
+ $notas_fiscais = new dao\Notas_fiscais();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -230,12 +249,15 @@ function update()
     if (isset($post_vars['valor'])) {
         $notas_fiscais->setValor($post_vars['valor']);
     }
+    if (isset($post_vars['fk_condominio_id'])) {
+        $notas_fiscais->setFk_condominio_id($post_vars['fk_condominio_id']);
+    }
 
     $connection = new connection\Connection();
-    $notas_fiscaisDao = new dao\Notas_fiscaisDao($connection);
-    $result = $notas_fiscaisDao->create($notas_fiscais);
+    $notas_fiscaisAdapter = new adapter\Notas_fiscaisAdapter($connection);
+    $result = $notas_fiscaisAdapter->create($notas_fiscais);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -244,7 +266,7 @@ function update()
  */
 function create()
 {
-    $notas_fiscais = new model\Notas_fiscais();
+    $notas_fiscais = new dao\Notas_fiscais();
 
     if (isset($_REQUEST['id'])) {        
         $notas_fiscais->setId($_REQUEST['id']);
@@ -265,12 +287,15 @@ function create()
     if (isset($_REQUEST['valor'])) {
         $notas_fiscais->setValor($_REQUEST['valor']);
     }
+    if (isset($_REQUEST['fk_condominio_id'])) {
+        $notas_fiscais->setFk_condominio_id($_REQUEST['fk_condominio_id']);
+    }
 
     $connection = new connection\Connection();
-    $notas_fiscaisDao = new dao\Notas_fiscaisDao($connection);
-    $result = $notas_fiscaisDao->create($notas_fiscais);
+    $notas_fiscaisAdapter = new adapter\Notas_fiscaisAdapter($connection);
+    $result = $notas_fiscaisAdapter->create($notas_fiscais);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

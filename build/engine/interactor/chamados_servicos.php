@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -68,10 +68,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $chamados_servicosDao = new dao\Chamados_servicosDao($connection);
-    $result = $chamados_servicosDao->getAll($list, "", "", $page, $pageSize);
+    $chamados_servicosAdapter = new adapter\Chamados_servicosAdapter($connection);
+    $result = $chamados_servicosAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -130,10 +130,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $chamados_servicosDao = new dao\Chamados_servicosDao($connection);
-    $result = $chamados_servicosDao->getAll($list, "", "", $page, $pageSize);
+    $chamados_servicosAdapter = new adapter\Chamados_servicosAdapter($connection);
+    $result = $chamados_servicosAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -142,7 +142,7 @@ function findAll()
  */
 function remove()
 {
-    $chamados_servicos = new model\Chamados_servicos();
+    $chamados_servicos = new dao\Chamados_servicos();
 
     if (isset($_GET['id'])) {        
         $chamados_servicos->setId($_GET['id']);
@@ -163,8 +163,8 @@ function remove()
     }
 
     $connection = new connection\Connection();
-    $chamados_servicosDao = new dao\Chamados_servicosDao($connection);
-    $result = $chamados_servicosDao->delete($chamados_servicos);
+    $chamados_servicosAdapter = new adapter\Chamados_servicosAdapter($connection);
+    $result = $chamados_servicosAdapter->delete($chamados_servicos);
 
     
 	$response = new ResponseDelete();
@@ -175,7 +175,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -184,7 +184,7 @@ function remove()
  */
 function update()
 {
- $chamados_servicos = new model\Chamados_servicos();
+ $chamados_servicos = new dao\Chamados_servicos();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -212,10 +212,10 @@ function update()
     }
 
     $connection = new connection\Connection();
-    $chamados_servicosDao = new dao\Chamados_servicosDao($connection);
-    $result = $chamados_servicosDao->create($chamados_servicos);
+    $chamados_servicosAdapter = new adapter\Chamados_servicosAdapter($connection);
+    $result = $chamados_servicosAdapter->create($chamados_servicos);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -224,7 +224,7 @@ function update()
  */
 function create()
 {
-    $chamados_servicos = new model\Chamados_servicos();
+    $chamados_servicos = new dao\Chamados_servicos();
 
     if (isset($_REQUEST['id'])) {        
         $chamados_servicos->setId($_REQUEST['id']);
@@ -245,10 +245,10 @@ function create()
     }
 
     $connection = new connection\Connection();
-    $chamados_servicosDao = new dao\Chamados_servicosDao($connection);
-    $result = $chamados_servicosDao->create($chamados_servicos);
+    $chamados_servicosAdapter = new adapter\Chamados_servicosAdapter($connection);
+    $result = $chamados_servicosAdapter->create($chamados_servicos);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

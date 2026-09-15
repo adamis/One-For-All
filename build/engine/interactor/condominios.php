@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -167,6 +167,33 @@ function find()
 		$list[]=$where;
         
     }
+    if (isset($_REQUEST['ad_hostname'])) {
+
+		$where = new FilterWhere();       
+		$where->setCollum('condominios.ad_hostname');
+        $where->setCondition('like');
+		$where->setValue('%'.$_REQUEST['ad_hostname'].'%');
+		$list[]=$where;
+        
+    }
+    if (isset($_REQUEST['ad_last_seen'])) {
+
+		$where = new FilterWhere();       
+		$where->setCollum('condominios.ad_last_seen');
+        $where->setCondition('like');
+		$where->setValue('%'.$_REQUEST['ad_last_seen'].'%');
+		$list[]=$where;
+        
+    }
+    if (isset($_REQUEST['ad_status'])) {
+
+		$where = new FilterWhere();       
+		$where->setCollum('condominios.ad_status');
+        $where->setCondition('like');
+		$where->setValue('%'.$_REQUEST['ad_status'].'%');
+		$list[]=$where;
+        
+    }
 
  	if (isset($_REQUEST['page'])) {
     	$page = $_REQUEST['page'];
@@ -176,10 +203,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $condominiosDao = new dao\CondominiosDao($connection);
-    $result = $condominiosDao->getAll($list, "", "", $page, $pageSize);
+    $condominiosAdapter = new adapter\CondominiosAdapter($connection);
+    $result = $condominiosAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -313,6 +340,27 @@ function findAll()
 		$where->setValue('%'.$_GET['tipo_logradouro'].'%');
 		$list[]=$where;
     }
+    if (isset($_GET['ad_hostname'])) {
+       $where = new FilterWhere();       
+		$where->setCollum('condominios.ad_hostname');
+        $where->setCondition('like');
+		$where->setValue('%'.$_GET['ad_hostname'].'%');
+		$list[]=$where;
+    }
+    if (isset($_GET['ad_last_seen'])) {
+       $where = new FilterWhere();       
+		$where->setCollum('condominios.ad_last_seen');
+        $where->setCondition('like');
+		$where->setValue('%'.$_GET['ad_last_seen'].'%');
+		$list[]=$where;
+    }
+    if (isset($_GET['ad_status'])) {
+       $where = new FilterWhere();       
+		$where->setCollum('condominios.ad_status');
+        $where->setCondition('like');
+		$where->setValue('%'.$_GET['ad_status'].'%');
+		$list[]=$where;
+    }
         		
  	if (isset($_REQUEST['page'])) {
     	$page = $_REQUEST['page'];
@@ -322,10 +370,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $condominiosDao = new dao\CondominiosDao($connection);
-    $result = $condominiosDao->getAll($list, "", "", $page, $pageSize);
+    $condominiosAdapter = new adapter\CondominiosAdapter($connection);
+    $result = $condominiosAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -334,7 +382,7 @@ function findAll()
  */
 function remove()
 {
-    $condominios = new model\Condominios();
+    $condominios = new dao\Condominios();
 
     if (isset($_GET['id'])) {        
         $condominios->setId($_GET['id']);
@@ -389,9 +437,18 @@ function remove()
     if (isset($_GET['tipo_logradouro'])) {
         $condominios->setTipo_logradouro($_GET['tipo_logradouro']);
     }
+    if (isset($_GET['ad_hostname'])) {
+        $condominios->setAd_hostname($_GET['ad_hostname']);
+    }
+    if (isset($_GET['ad_last_seen'])) {
+        $condominios->setAd_last_seen($_GET['ad_last_seen']);
+    }
+    if (isset($_GET['ad_status'])) {
+        $condominios->setAd_status($_GET['ad_status']);
+    }
     $connection = new connection\Connection();
-    $condominiosDao = new dao\CondominiosDao($connection);
-    $result = $condominiosDao->delete($condominios);
+    $condominiosAdapter = new adapter\CondominiosAdapter($connection);
+    $result = $condominiosAdapter->delete($condominios);
 
     
 	$response = new ResponseDelete();
@@ -402,7 +459,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -411,7 +468,7 @@ function remove()
  */
 function update()
 {
- $condominios = new model\Condominios();
+ $condominios = new dao\Condominios();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -473,11 +530,20 @@ function update()
     if (isset($post_vars['tipo_logradouro'])) {
         $condominios->setTipo_logradouro($post_vars['tipo_logradouro']);
     }
+    if (isset($post_vars['ad_hostname'])) {
+        $condominios->setAd_hostname($post_vars['ad_hostname']);
+    }
+    if (isset($post_vars['ad_last_seen'])) {
+        $condominios->setAd_last_seen($post_vars['ad_last_seen']);
+    }
+    if (isset($post_vars['ad_status'])) {
+        $condominios->setAd_status($post_vars['ad_status']);
+    }
     $connection = new connection\Connection();
-    $condominiosDao = new dao\CondominiosDao($connection);
-    $result = $condominiosDao->create($condominios);
+    $condominiosAdapter = new adapter\CondominiosAdapter($connection);
+    $result = $condominiosAdapter->create($condominios);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -486,7 +552,7 @@ function update()
  */
 function create()
 {
-    $condominios = new model\Condominios();
+    $condominios = new dao\Condominios();
 
     if (isset($_REQUEST['id'])) {        
         $condominios->setId($_REQUEST['id']);
@@ -541,11 +607,20 @@ function create()
     if (isset($_REQUEST['tipo_logradouro'])) {
         $condominios->setTipo_logradouro($_REQUEST['tipo_logradouro']);
     }
+    if (isset($_REQUEST['ad_hostname'])) {
+        $condominios->setAd_hostname($_REQUEST['ad_hostname']);
+    }
+    if (isset($_REQUEST['ad_last_seen'])) {
+        $condominios->setAd_last_seen($_REQUEST['ad_last_seen']);
+    }
+    if (isset($_REQUEST['ad_status'])) {
+        $condominios->setAd_status($_REQUEST['ad_status']);
+    }
     $connection = new connection\Connection();
-    $condominiosDao = new dao\CondominiosDao($connection);
-    $result = $condominiosDao->create($condominios);
+    $condominiosAdapter = new adapter\CondominiosAdapter($connection);
+    $result = $condominiosAdapter->create($condominios);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

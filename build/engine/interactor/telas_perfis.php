@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -68,10 +68,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $telas_perfisDao = new dao\Telas_perfisDao($connection);
-    $result = $telas_perfisDao->getAll($list, "", "", $page, $pageSize);
+    $telas_perfisAdapter = new adapter\Telas_perfisAdapter($connection);
+    $result = $telas_perfisAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -130,10 +130,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $telas_perfisDao = new dao\Telas_perfisDao($connection);
-    $result = $telas_perfisDao->getAll($list, "", "", $page, $pageSize);
+    $telas_perfisAdapter = new adapter\Telas_perfisAdapter($connection);
+    $result = $telas_perfisAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -142,7 +142,7 @@ function findAll()
  */
 function remove()
 {
-    $telas_perfis = new model\Telas_perfis();
+    $telas_perfis = new dao\Telas_perfis();
 
     if (isset($_GET['id'])) {        
         $telas_perfis->setId($_GET['id']);
@@ -163,8 +163,8 @@ function remove()
     }
 
     $connection = new connection\Connection();
-    $telas_perfisDao = new dao\Telas_perfisDao($connection);
-    $result = $telas_perfisDao->delete($telas_perfis);
+    $telas_perfisAdapter = new adapter\Telas_perfisAdapter($connection);
+    $result = $telas_perfisAdapter->delete($telas_perfis);
 
     
 	$response = new ResponseDelete();
@@ -175,7 +175,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -184,7 +184,7 @@ function remove()
  */
 function update()
 {
- $telas_perfis = new model\Telas_perfis();
+ $telas_perfis = new dao\Telas_perfis();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -212,10 +212,10 @@ function update()
     }
 
     $connection = new connection\Connection();
-    $telas_perfisDao = new dao\Telas_perfisDao($connection);
-    $result = $telas_perfisDao->create($telas_perfis);
+    $telas_perfisAdapter = new adapter\Telas_perfisAdapter($connection);
+    $result = $telas_perfisAdapter->create($telas_perfis);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -224,7 +224,7 @@ function update()
  */
 function create()
 {
-    $telas_perfis = new model\Telas_perfis();
+    $telas_perfis = new dao\Telas_perfis();
 
     if (isset($_REQUEST['id'])) {        
         $telas_perfis->setId($_REQUEST['id']);
@@ -245,10 +245,10 @@ function create()
     }
 
     $connection = new connection\Connection();
-    $telas_perfisDao = new dao\Telas_perfisDao($connection);
-    $result = $telas_perfisDao->create($telas_perfis);
+    $telas_perfisAdapter = new adapter\Telas_perfisAdapter($connection);
+    $result = $telas_perfisAdapter->create($telas_perfis);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

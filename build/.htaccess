@@ -1,7 +1,12 @@
 Options -Indexes
+DirectoryIndex index.php OneForAll.php
 
 RewriteEngine On
-RewriteBase /One-For-All/build/
+RewriteBase /OneForAll/build/
+
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 
 RewriteRule ^api/(\w+)/(\w+)/?$ engine/Router.php?class=$1&method=$2&param=api [NC,L,QSA]
 

@@ -5,12 +5,19 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	
 	callJs();
 	callIndex();
-	header("Location: index.php");
+	if (php_sapi_name() !== 'cli' && !headers_sent()) {
+		header("Location: index.php");
+		exit;
+	}
+	echo "index.php gerado. Abra no navegador para iniciar a geração.\n";
+	exit;
 	
 }else if (!isset ( $_GET ["method"] )) {
+	persistAndReadSecurity();
 	echo "OK,Criando Barramento de Informações,barramento";
 	
 } else {
+	persistAndReadSecurity();
 	
 	if ($_GET ["method"] == "barramento") {		
 		try {
@@ -90,7 +97,16 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	if ($_GET ["method"] == "htacess") {
 		try {			
 			getHtAccess ();
-			echo "OK,Criando Rotas,acls";		
+			echo "OK,Configurando Segurança OAuth2,securitySetup";		
+		} catch (Exception $e) {
+			echo $e.",Configurando Segurança OAuth2,securitySetup";
+		}
+	}
+
+	if ($_GET ["method"] == "securitySetup") {
+		try {
+			setupSecurity(isSecurityEnabled());
+			echo "OK,Criando Rotas,acls";
 		} catch (Exception $e) {
 			echo $e.",Criando Rotas,acls";
 		}
@@ -117,24 +133,24 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	if ($_GET ["method"] == "base") {
 		try {
 			getBase ();
-			echo "OK,Criando Models,createModel";
+			echo "OK,Criando DAO's,createDao";
 		} catch (Exception $e) {
-			echo $e.",Criando Models,createModel";
-		}
-	}
-	
-	if ($_GET ["method"] == "createModel") {
-		try {
-			createModel ();
-			echo "OK,Criando DAOs,createDao";
-		} catch (Exception $e) {
-			echo $e.",Criando DAOs,createDao";
+			echo $e.",Criando DAO's,createDao";
 		}
 	}
 	
 	if ($_GET ["method"] == "createDao") {
 		try {
-			createDaos ();
+			createDao ();
+			echo "OK,Criando Adapters,createAdapter";
+		} catch (Exception $e) {
+			echo $e.",Criando Adapters,createAdapter";
+		}
+	}
+	
+	if ($_GET ["method"] == "createAdapter") {
+		try {
+			createAdapters ();
 			echo "OK,Criando Interactors,createInteractor";
 		} catch (Exception $e) {
 			echo $e.",Criando Interactors,createInteractor";
@@ -158,6 +174,19 @@ if(!file_exists("index.php") && !file_exists("script.js")){
 	
 	
 }
+// getBarramento();
+// getAutoload();
+// getHost();
+// getResponse();
+// getConnection();
+// getComposer();
+// getlibSqlFormatter();
+// getHtAccess();
+// getRouter();
+// getBase();
+// createDao();
+// createAdapters();
+// createInteractor();
 
 // -----------------------CALLS--------------------------------------
 ?>

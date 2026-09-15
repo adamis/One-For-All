@@ -1,17 +1,28 @@
 <?php
 	use engine\Hosts;
+    use engine\auth\TokenGuard;
     use engine\Acl;
 
 	include_once 'interactor/base.php';
 	include_once '../Autoload.php';
+
+	$_GET["class"] = preg_replace('/[^a-z0-9_]/i', '', $_GET["class"] ?? '');
+	$_GET["method"] = preg_replace('/[^a-z0-9_]/i', '', $_GET["method"] ?? '');
+	$_GET["param"] = preg_replace('/[^a-z0-9_]/i', '', $_GET["param"] ?? '');
+
+	if($_GET["param"] == 'api'){
+		header("Content-type: application/json; charset=UTF-8");
+	}
+
+	if (file_exists(__DIR__ . '/auth/TokenGuard.php')) {
+		TokenGuard::assert($_GET["class"], $_GET["method"]);
+	}
 	
 	if($_GET["param"] == 'api'){
 		
 		$Hosts = new Hosts();
-				
-		header("Content-type: application/json; charset=UTF-8");		
 		
-		if(file_exists("interactor/".$_GET["class"].'.php')){
+		if($_GET["class"] !== '' && file_exists("interactor/".$_GET["class"].'.php')){
 			include_once "interactor/".$_GET["class"].'.php';
 		}
 	}
@@ -63,13 +74,10 @@
 			  }
 			}
 		}
-		if($acess){
-			return $this_string = ob_get_contents();
-		}else{
+		if(!$acess){
             http_response_code(401);
-			echo "ACESSO NEGADO!";
-			return $this_string = ob_get_contents();
+			echo json_encode(array("erro" => "ACESSO NEGADO!"));
 		}
-		ob_end_clean();
+		ob_end_flush();
 	}
 ?>

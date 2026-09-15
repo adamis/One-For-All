@@ -1,115 +1,142 @@
 <?php
-date_default_timezone_set ( "America/Sao_Paulo" );
+/**
+ * Empacota os geradores em build/OneForAll.php
+ * Uso: C:\xampp\php\php.exe Package.php
+ */
 
-if (!file_exists('build')) {
-    mkdir('build', 0777, true);
+$buildDir = __DIR__ . DIRECTORY_SEPARATOR . 'build';
+$dest     = $buildDir . DIRECTORY_SEPARATOR . 'OneForAll.php';
+
+if (!is_dir($buildDir)) {
+    mkdir($buildDir, 0777, true);
 }
 
-if (file_exists('build/OneForAll.php')) {
-    unlink('build/OneForAll.php');
-}
- 
-$arq = "build/OneForAll.php";
-$payload = file_get_contents('http://adamis.com.br/OneForAllManager/api/getVersion/findAll?status=1');
-//$payload = file_get_contents('http://localhost/OneForAllManager/api/getVersion/findAll?status=1');
-$objServer = json_decode($payload);
+$version = bumpOneForAllVersion(__DIR__);
 
-if ($handle = opendir('.')) {
-    	
-	while (false !== ($entry = readdir($handle))) {
-		if($entry == "Activated.php"){
-			$conteudo = trim(ler($entry));
-			gravar($arq,$conteudo,$objServer->version,$objServer->dataAtual);
-		}
-	}
-	
-	$handle = opendir('.');
-	
-	gravar($arq, "<?php",$objServer->version,$objServer->dataAtual);
-	    
-    while (false !== ($entry = readdir($handle))) {
-            	
-        if (   $entry != "." 
-            && $entry != ".." 
-            && $entry[0] != "." 
-            && $entry != "Package.php" 
-            && $entry != "build"
-        	&& $entry != "Activated.php"
-        	&& $entry != "README.md"
-        ) {            
-                //echo "$entry<br>";
-                
-                //L� o conte�do do arquivo aberto.
-                $conteudo = trim(ler($entry)); 
-                
-                $size = strlen($conteudo);
-                
-//                 echo 'SIZE> '.$size.'<br>';
-                
-                $conteudo = substr($conteudo,5, $size-10);
-//                 echo $conteudo;
-//                 echo '<br>';
-                                
-                gravar($arq,$conteudo,$objServer->version,$objServer->dataAtual);               
+$preferred = [
+    'ActiveDefine.php',
+    'Utils.php',
+    'SqlStruct.php',
+    'CreateSecurity.php',
+    'CreateDaos.php',
+    'CreateAdapters.php',
+    'CreateInteractor.php',
+    'Recursos.php',
+    'CallsActivated.php',
+    'Calls.php',
+];
+
+$skip = [
+    'Package.php',
+    'Activated.php',
+];
+
+$phpFiles = [];
+foreach (scandir(__DIR__) as $entry) {
+    if ($entry === '.' || $entry === '..' || $entry[0] === '.') {
+        continue;
+    }
+    $path = __DIR__ . DIRECTORY_SEPARATOR . $entry;
+    if (!is_file($path) || strtolower(pathinfo($entry, PATHINFO_EXTENSION)) !== 'php') {
+        continue;
+    }
+    if (in_array($entry, $skip, true)) {
+        continue;
+    }
+    $phpFiles[] = $entry;
+}
+
+$ordered = [];
+foreach ($preferred as $name) {
+    if (in_array($name, $phpFiles, true)) {
+        $ordered[] = $name;
+    }
+}
+foreach ($phpFiles as $name) {
+    if (!in_array($name, $ordered, true)) {
+        $ordered[] = $name;
+    }
+}
+
+$buffer = "<?php\n";
+foreach ($ordered as $entry) {
+    $conteudo = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . $entry);
+    if ($conteudo === false) {
+        fwrite(STDERR, "Falha ao ler {$entry}\n");
+        exit(1);
+    }
+    $buffer .= "\n//----------------------- {$entry} -----------------------\n";
+    $buffer .= stripPhpWrapper($conteudo);
+}
+
+if (file_put_contents($dest, $buffer) === false) {
+    fwrite(STDERR, "Falha ao gravar {$dest}\n");
+    exit(1);
+}
+
+$bytes = filesize($dest);
+echo "OneForAll empacotado em {$dest} ({$bytes} bytes)\n";
+echo "Versao: {$version}\n";
+echo "Arquivos: " . implode(', ', $ordered) . "\n";
+
+function stripPhpWrapper($conteudo)
+{
+    $conteudo = preg_replace('/^\xEF\xBB\xBF/', '', $conteudo);
+    $conteudo = preg_replace('/^\s*<\?php\s*/i', '', $conteudo);
+    $conteudo = preg_replace('/\s*\?>\s*$/', '', $conteudo);
+    return rtrim($conteudo) . "\n";
+}
+
+function bumpOneForAllVersion($root)
+{
+    $versionFile = $root . DIRECTORY_SEPARATOR . 'VERSION';
+    $defineFile  = $root . DIRECTORY_SEPARATOR . 'ActiveDefine.php';
+    $current     = '2.0.0';
+
+    if (is_file($versionFile)) {
+        $current = trim((string) file_get_contents($versionFile));
+    } elseif (is_file($defineFile)) {
+        $src = (string) file_get_contents($defineFile);
+        if (preg_match('/ONEFORALL_VERSION"\s*,\s*"([^"]+)"/', $src, $m)) {
+            $current = $m[1];
         }
     }
-    
-//     gravar($arq, "
-// //-----------------------FINAL-------------------------
-// \$now = new DateTime ();
-// echo 'FINALIZADO!<br>' . \$now->format ( 'd-m-Y H:i:s' );
-// //-----------------------FINAL-------------------------
-// ");
-    
-    gravar($arq, "?>",$objServer->version,$objServer->dataAtual);
-    
-    closedir($handle);
 
-    //header("location:build/OneForAll.php");    
-    $currentDirectory = getcwd();
+    if (!preg_match('/^(\d+)\.(\d+)\.(\d+)/', $current, $m)) {
+        $m = [null, '2', '0', '0'];
+    }
+    $next = $m[1] . '.' . $m[2] . '.' . ((int) $m[3] + 1);
 
-//<form name=\"myForm\" id=\"myForm\"  enctype=\"multipart/form-data\" action=\"http://adamis.com.br/OneForAllManager/api/upload/find?version=$objServer->version&data=$objServer->dataGenerate\" method=\"POST\">       
-//<form name=\"myForm\" id=\"myForm\"  enctype=\"multipart/form-data\" action=\"http://localhost/OneForAllManager/api/upload/find?version=$objServer->version&data=$objServer->dataGenerate\" method=\"POST\">       	
+    if (file_put_contents($versionFile, $next . PHP_EOL) === false) {
+        fwrite(STDERR, "Falha ao gravar VERSION\n");
+        exit(1);
+    }
 
-    echo "    
-    <form name=\"myForm\" id=\"myForm\"  enctype=\"multipart/form-data\" action=\"http://adamis.com.br/OneForAllManager/api/upload/find?version=$objServer->version&data=$objServer->dataGenerate\" method=\"POST\">       
-       <input id=\"file\" name=\"file\" type=\"file\" />        
-       <input type=\"submit\" value=\"Enviar\" />
-    </form>    
-    ";
+    if (is_file($defineFile)) {
+        $src = (string) file_get_contents($defineFile);
+        $updated = preg_replace(
+            '/define\s*\(\s*"ONEFORALL_VERSION"\s*,\s*"[^"]*"\s*\)/',
+            'define ( "ONEFORALL_VERSION", "' . $next . '" )',
+            $src,
+            1,
+            $count
+        );
+        if ($count === 0) {
+            fwrite(STDERR, "ONEFORALL_VERSION nao encontrado em ActiveDefine.php\n");
+            exit(1);
+        }
+        if (file_put_contents($defineFile, $updated) === false) {
+            fwrite(STDERR, "Falha ao atualizar ActiveDefine.php\n");
+            exit(1);
+        }
+    }
+
+    $index = $root . DIRECTORY_SEPARATOR . 'build' . DIRECTORY_SEPARATOR . 'index.php';
+    if (is_file($index)) {
+        $html = (string) file_get_contents($index);
+        $html = preg_replace('/OneForAll v\d+\.\d+\.\d+/', 'OneForAll v' . $next, $html);
+        file_put_contents($index, $html);
+    }
+
+    return $next;
 }
-
-
-
-function gravar($arquivo,$texto,$version,$dataAtual){
-    
-
-    //Vari�vel $fp armazena a conex�o com o arquivo e o tipo de a��o.
-    $texto = str_replace("%dataAtual%",date("d/m/Y H:i:s"), $texto);
-    $fp = fopen($arquivo, "a+");
-    
-    //Escreve no arquivo aberto.
-    fwrite($fp, $texto);
-    
-    //Fecha o arquivo.
-    fclose($fp);
-
-
-}
-
-function ler($arquivo){    
-    //Vari�vel $fp armazena a conex�o com o arquivo e o tipo de a��o.
-    $fp = fopen($arquivo, "a+");
-    
-    //L� o conte�do do arquivo aberto.
-    $conteudo = fread($fp, filesize($arquivo));
-    
-    //Fecha o arquivo.
-    fclose($fp);
-    
-    //retorna o conte�do.
-    return $conteudo;
-}
-
-
-?>

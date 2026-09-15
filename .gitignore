@@ -1,0 +1,6 @@
+# Segredos e artefatos locais
+build/engine/oauth-admin.txt
+build/engine/.security_flag
+*.out
+Thumbs.db
+.DS_Store

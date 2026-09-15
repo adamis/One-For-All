@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -68,10 +68,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $configsDao = new dao\ConfigsDao($connection);
-    $result = $configsDao->getAll($list, "", "", $page, $pageSize);
+    $configsAdapter = new adapter\ConfigsAdapter($connection);
+    $result = $configsAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -130,10 +130,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $configsDao = new dao\ConfigsDao($connection);
-    $result = $configsDao->getAll($list, "", "", $page, $pageSize);
+    $configsAdapter = new adapter\ConfigsAdapter($connection);
+    $result = $configsAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -142,7 +142,7 @@ function findAll()
  */
 function remove()
 {
-    $configs = new model\Configs();
+    $configs = new dao\Configs();
 
     if (isset($_GET['id'])) {        
         $configs->setId($_GET['id']);
@@ -161,8 +161,8 @@ function remove()
         $configs->setValor($_GET['valor']);
     }
     $connection = new connection\Connection();
-    $configsDao = new dao\ConfigsDao($connection);
-    $result = $configsDao->delete($configs);
+    $configsAdapter = new adapter\ConfigsAdapter($connection);
+    $result = $configsAdapter->delete($configs);
 
     
 	$response = new ResponseDelete();
@@ -173,7 +173,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -182,7 +182,7 @@ function remove()
  */
 function update()
 {
- $configs = new model\Configs();
+ $configs = new dao\Configs();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -208,10 +208,10 @@ function update()
         $configs->setValor($post_vars['valor']);
     }
     $connection = new connection\Connection();
-    $configsDao = new dao\ConfigsDao($connection);
-    $result = $configsDao->create($configs);
+    $configsAdapter = new adapter\ConfigsAdapter($connection);
+    $result = $configsAdapter->create($configs);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -220,7 +220,7 @@ function update()
  */
 function create()
 {
-    $configs = new model\Configs();
+    $configs = new dao\Configs();
 
     if (isset($_REQUEST['id'])) {        
         $configs->setId($_REQUEST['id']);
@@ -239,10 +239,10 @@ function create()
         $configs->setValor($_REQUEST['valor']);
     }
     $connection = new connection\Connection();
-    $configsDao = new dao\ConfigsDao($connection);
-    $result = $configsDao->create($configs);
+    $configsAdapter = new adapter\ConfigsAdapter($connection);
+    $result = $configsAdapter->create($configs);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

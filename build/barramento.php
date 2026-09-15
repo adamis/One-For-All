@@ -7,14 +7,22 @@
         
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Barramento</h5>  
-                <p class="card-text">
-                    Todas as suas apis serão listadas aqui!
-                    <br>
-                    <span style="font-size: 10px; font-weight: bold;">Build 1.0 22/11/2025 15:42:21</span>
-                </p>                 
+            <h5 class="card-title">Barramento</h5>  
+            <p class="card-text">Todas as suas apis serão listadas aqui!</p>  
             </div>
         </div>
+<?php
+    if (class_exists('engine\SecurityConfig') && \engine\SecurityConfig::enabled()) {
+        echo '<div class="card" style="margin:20px;"><div class="card-body">';
+        echo '<h5 class="card-title">OAuth2</h5>';
+        echo '<p class="card-text">APIs protegidas. Obtenha o token em <code>POST /api/oauth/token</code> com <code>grant_type=password</code>, <code>username</code> e <code>password</code>. Envie <code>Authorization: Bearer {access_token}</code> nas demais rotas. Refresh: <code>grant_type=refresh_token</code>.</p>';
+        $credFile = __DIR__ . '/engine/oauth-admin.txt';
+        if (is_file($credFile)) {
+            echo '<pre style="background:#f5f5f5;padding:12px;white-space:pre-wrap;">' . htmlspecialchars(file_get_contents($credFile), ENT_QUOTES, 'UTF-8') . '</pre>';
+        }
+        echo '</div></div>';
+    }
+?>
 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -305,15 +313,6 @@
 
     <script type="text/javascript">
         <?php echo $script; ?>
-
-        //-------------- FUNÇÕES AUXILIARES --------------------------
-        function gI(id) { return document.getElementById(id); }
-        function gL(obj) { return obj.length; }
-        function gY(obj) { return obj.type; }
-        function gC(obj) { return obj.className; }
-        function gV(obj) { return obj.value; }
-        function gH(obj) { return obj.innerHTML; }
-        //-------------- FIM FUNÇÕES AUXILIARES --------------------------
 
         //-------------- PRETTY --------------------------
         if (!library)

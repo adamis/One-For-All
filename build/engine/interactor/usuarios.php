@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -140,6 +140,15 @@ function find()
 		$list[]=$where;
         
     }
+    if (isset($_REQUEST['tema_preferencia'])) {
+
+		$where = new FilterWhere();       
+		$where->setCollum('usuarios.tema_preferencia');
+        $where->setCondition('like');
+		$where->setValue('%'.$_REQUEST['tema_preferencia'].'%');
+		$list[]=$where;
+        
+    }
 
  	if (isset($_REQUEST['page'])) {
     	$page = $_REQUEST['page'];
@@ -149,10 +158,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $usuariosDao = new dao\UsuariosDao($connection);
-    $result = $usuariosDao->getAll($list, "", "", $page, $pageSize);
+    $usuariosAdapter = new adapter\UsuariosAdapter($connection);
+    $result = $usuariosAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -265,6 +274,13 @@ function findAll()
 		$where->setValue('%'.$_GET['roles'].'%');
 		$list[]=$where;
     }
+    if (isset($_GET['tema_preferencia'])) {
+       $where = new FilterWhere();       
+		$where->setCollum('usuarios.tema_preferencia');
+        $where->setCondition('like');
+		$where->setValue('%'.$_GET['tema_preferencia'].'%');
+		$list[]=$where;
+    }
         		
  	if (isset($_REQUEST['page'])) {
     	$page = $_REQUEST['page'];
@@ -274,10 +290,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $usuariosDao = new dao\UsuariosDao($connection);
-    $result = $usuariosDao->getAll($list, "", "", $page, $pageSize);
+    $usuariosAdapter = new adapter\UsuariosAdapter($connection);
+    $result = $usuariosAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -286,7 +302,7 @@ function findAll()
  */
 function remove()
 {
-    $usuarios = new model\Usuarios();
+    $usuarios = new dao\Usuarios();
 
     if (isset($_GET['id'])) {        
         $usuarios->setId($_GET['id']);
@@ -334,9 +350,12 @@ function remove()
     if (isset($_GET['roles'])) {
         $usuarios->setRoles($_GET['roles']);
     }
+    if (isset($_GET['tema_preferencia'])) {
+        $usuarios->setTema_preferencia($_GET['tema_preferencia']);
+    }
     $connection = new connection\Connection();
-    $usuariosDao = new dao\UsuariosDao($connection);
-    $result = $usuariosDao->delete($usuarios);
+    $usuariosAdapter = new adapter\UsuariosAdapter($connection);
+    $result = $usuariosAdapter->delete($usuarios);
 
     
 	$response = new ResponseDelete();
@@ -347,7 +366,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -356,7 +375,7 @@ function remove()
  */
 function update()
 {
- $usuarios = new model\Usuarios();
+ $usuarios = new dao\Usuarios();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -411,11 +430,14 @@ function update()
     if (isset($post_vars['roles'])) {
         $usuarios->setRoles($post_vars['roles']);
     }
+    if (isset($post_vars['tema_preferencia'])) {
+        $usuarios->setTema_preferencia($post_vars['tema_preferencia']);
+    }
     $connection = new connection\Connection();
-    $usuariosDao = new dao\UsuariosDao($connection);
-    $result = $usuariosDao->create($usuarios);
+    $usuariosAdapter = new adapter\UsuariosAdapter($connection);
+    $result = $usuariosAdapter->create($usuarios);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -424,7 +446,7 @@ function update()
  */
 function create()
 {
-    $usuarios = new model\Usuarios();
+    $usuarios = new dao\Usuarios();
 
     if (isset($_REQUEST['id'])) {        
         $usuarios->setId($_REQUEST['id']);
@@ -472,11 +494,14 @@ function create()
     if (isset($_REQUEST['roles'])) {
         $usuarios->setRoles($_REQUEST['roles']);
     }
+    if (isset($_REQUEST['tema_preferencia'])) {
+        $usuarios->setTema_preferencia($_REQUEST['tema_preferencia']);
+    }
     $connection = new connection\Connection();
-    $usuariosDao = new dao\UsuariosDao($connection);
-    $result = $usuariosDao->create($usuarios);
+    $usuariosAdapter = new adapter\UsuariosAdapter($connection);
+    $result = $usuariosAdapter->create($usuarios);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

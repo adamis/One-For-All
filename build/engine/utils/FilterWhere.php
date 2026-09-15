@@ -28,6 +28,10 @@ class FilterWhere{
 	
 	function setCondition($condition)
 	{
+		$allowed = array('=', 'like', '>', '<', '>=', '<=', '!=', '<>');
+		if (!in_array(strtolower($condition), $allowed, true)) {
+			$condition = '=';
+		}
 		$this->condition = $condition;
 	}
 	

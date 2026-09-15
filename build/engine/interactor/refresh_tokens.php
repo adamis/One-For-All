@@ -1,7 +1,7 @@
 <?php    
-use engine\dao;
+use engine\adapter;
 use engine\connection;
-use engine\model;
+use engine\dao;
 use engine\utils\FilterWhere;
 use engine\utils\ResponseDelete;
 
@@ -70,10 +70,10 @@ function find()
     }
 
     $connection = new connection\Connection();
-    $refresh_tokensDao = new dao\Refresh_tokensDao($connection);
-    $result = $refresh_tokensDao->getAll($list, "", "", $page, $pageSize);
+    $refresh_tokensAdapter = new adapter\Refresh_tokensAdapter($connection);
+    $result = $refresh_tokensAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -132,10 +132,10 @@ function findAll()
     }
 
     $connection = new connection\Connection();
-    $refresh_tokensDao = new dao\Refresh_tokensDao($connection);
-    $result = $refresh_tokensDao->getAll($list, "", "", $page, $pageSize);
+    $refresh_tokensAdapter = new adapter\Refresh_tokensAdapter($connection);
+    $result = $refresh_tokensAdapter->getAll($list, "", "", $page, $pageSize);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -144,7 +144,7 @@ function findAll()
  */
 function remove()
 {
-    $refresh_tokens = new model\Refresh_tokens();
+    $refresh_tokens = new dao\Refresh_tokens();
 
     if (isset($_GET['token'])) {
         $refresh_tokens->setToken($_GET['token']);
@@ -162,8 +162,8 @@ function remove()
         $refresh_tokens->setUsername($_GET['username']);
     }
     $connection = new connection\Connection();
-    $refresh_tokensDao = new dao\Refresh_tokensDao($connection);
-    $result = $refresh_tokensDao->delete($refresh_tokens);
+    $refresh_tokensAdapter = new adapter\Refresh_tokensAdapter($connection);
+    $result = $refresh_tokensAdapter->delete($refresh_tokens);
 
     
 	$response = new ResponseDelete();
@@ -174,7 +174,7 @@ function remove()
 		$response->setStatus(false);
 	}	
 
-    return json_encode($response);
+    return json_encode($response, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -183,7 +183,7 @@ function remove()
  */
 function update()
 {
- $refresh_tokens = new model\Refresh_tokens();
+ $refresh_tokens = new dao\Refresh_tokens();
 
 	$post_vars = getParametersPUT();
 	$listKey = array("id");	
@@ -208,10 +208,10 @@ function update()
         $refresh_tokens->setUsername($post_vars['username']);
     }
     $connection = new connection\Connection();
-    $refresh_tokensDao = new dao\Refresh_tokensDao($connection);
-    $result = $refresh_tokensDao->create($refresh_tokens);
+    $refresh_tokensAdapter = new adapter\Refresh_tokensAdapter($connection);
+    $result = $refresh_tokensAdapter->create($refresh_tokens);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
 
 }
 
@@ -220,7 +220,7 @@ function update()
  */
 function create()
 {
-    $refresh_tokens = new model\Refresh_tokens();
+    $refresh_tokens = new dao\Refresh_tokens();
 
     if (isset($_REQUEST['token'])) {
         $refresh_tokens->setToken($_REQUEST['token']);
@@ -238,10 +238,10 @@ function create()
         $refresh_tokens->setUsername($_REQUEST['username']);
     }
     $connection = new connection\Connection();
-    $refresh_tokensDao = new dao\Refresh_tokensDao($connection);
-    $result = $refresh_tokensDao->create($refresh_tokens);
+    $refresh_tokensAdapter = new adapter\Refresh_tokensAdapter($connection);
+    $result = $refresh_tokensAdapter->create($refresh_tokens);
         
-    return json_encode($result);
+    return json_encode($result, JSON_UNESCAPED_UNICODE);
        
 }
 

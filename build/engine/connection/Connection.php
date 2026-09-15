@@ -26,60 +26,39 @@ class Connection{
      */
     private function insert($object)
     {
-        $id = null;
-        
         $pieces = explode('\\', get_class($object));
-        $nameTable = $pieces[sizeof($pieces) - 1];
-        //TO LOWER
-        $nameTable = strtolower($nameTable);
-        
-        $campos = '';
-        $valores = '';
-        $sql = '';
-        
-        
+        $nameTable = strtolower($pieces[sizeof($pieces) - 1]);
+
         $json = json_decode(json_encode($object), true);
-        $jsonKeys = array_keys($json);
-        $jsonData = array_values($json);
-        
-        $virgula = '';
-        $aspas = '';
-        
-        for ($i = 0; $i < sizeof($jsonKeys); $i ++) {
-            if ($i > 0) {
-                $virgula = ',';
-            } else {
-                $virgula = '';
+        $campos = array();
+        $placeholders = array();
+        $params = array();
+        $i = 0;
+
+        foreach ($json as $key => $value) {
+            if ($value === null) {
+                continue;
             }
-        
-            $campos .= ($virgula . $jsonKeys[$i]);
-        
-            if (strcasecmp('string', gettype($jsonData[$i])) == 0) {
-                $aspas = '\'';
-            } else {
-                $aspas = '';
-            }
-        
-            if ($jsonData[$i] == null) {
-                $valores .= ($virgula . 'null');
-            } else {
-                $valores .= ($virgula . $aspas . $jsonData[$i] . $aspas);
-            }
+            $ph = ':p' . $i;
+            $campos[] = '`' . str_replace('`', '', $key) . '`';
+            $placeholders[] = $ph;
+            $params[$ph] = $value;
+            $i++;
         }
-        
-        // Concatena todas as variaveis e finaliza a instrucao
-        $sql .= 'INSERT INTO `' . $this->bancoName . '`.`' . $nameTable . '` (' . $campos . ')VALUES(' . $valores . ')';
-        
+
+        if (count($campos) === 0) {
+            throw new \InvalidArgumentException('INSERT sem colunas');
+        }
+
+        $sql = 'INSERT INTO `' . $this->bancoName . '`.`' . $nameTable . '` (' . implode(',', $campos) . ') VALUES (' . implode(',', $placeholders) . ')';
+
         $this->showCase($sql);
-        
-        
         $this->beginConnection();
         $sth = $this->pdo_->prepare($sql);
-        $sth->execute();
+        $sth->execute($params);
         $id = $this->pdo_->lastInsertId();
         $this->commitConection();
-        
-        
+
         return $id;
     }
         
@@ -93,67 +72,43 @@ class Connection{
     private function update($object)
     {
         $pieces = explode('\\', get_class($object));
-        $nameTable = $pieces[sizeof($pieces) - 1];
-        
-        
-        //TO LOWER
-        $nameTable = strtolower($nameTable);
-        
-        $set = '';
-        $sql = '';
-        
-        
+        $nameTable = strtolower($pieces[sizeof($pieces) - 1]);
         $json = json_decode(json_encode($object), true);
-        $jsonKeys = array_keys($json);
-        $jsonData = array_values($json);
-        
-        $virgula = '';
-        $aspas = '';
-        $where = '';
-        $id = null;
-        
-        for ($i = 0; $i < sizeof($jsonKeys); $i ++) {
-            if ($i > 0) {
-                $virgula = ',';
-            } else {
-                $virgula = '';
-            }
-        
-            $dados = '';
-            if ($jsonData[$i] == null) {
-                $dados = 'null';
-            } else {
-                $dados = $jsonData[$i];
-            }
-        
-            if (strcasecmp('string', gettype($jsonData[$i])) == 0) {
-                $aspas = '\'';
-            } else {
-                $aspas = '';
-            }
-        
-            if (strcasecmp('id', $jsonKeys[$i]) == 0) {
-                $where = 'id=' . $jsonData[$i];
-                $id = $jsonData[$i];
-            }
-        
-            $set .= ($virgula . $jsonKeys[$i] . '=' . $aspas . $dados . $aspas);
+        $keys = $object->getKeys();
+
+        $sets = array();
+        $params = array();
+        $i = 0;
+
+        foreach ($json as $key => $value) {
+            $ph = ':p' . $i;
+            $sets[] = '`' . str_replace('`', '', $key) . '` = ' . $ph;
+            $params[$ph] = $value;
+            $i++;
         }
-        
-        // Concatena todas as variaveis e finaliza a instrucao
-        $sql .= ' UPDATE `' . $this->bancoName . '`.`' . $nameTable . '`';
-        $sql .= ' SET ' . $set;
-        $sql .= ' WHERE ' . $where;
-        
+
+        $wheres = array();
+        foreach ($keys as $keyName => $keyVal) {
+            $ph = ':w' . $i;
+            $wheres[] = '`' . str_replace('`', '', $keyName) . '` = ' . $ph;
+            $params[$ph] = $keyVal;
+            $i++;
+        }
+
+        if (count($wheres) === 0) {
+            throw new \InvalidArgumentException('UPDATE sem chave primária');
+        }
+
+        $sql = 'UPDATE `' . $this->bancoName . '`.`' . $nameTable . '` SET ' . implode(',', $sets) . ' WHERE ' . implode(' AND ', $wheres);
+
         $this->showCase($sql);
-        
         $this->beginConnection();
         $sth = $this->pdo_->prepare($sql);
-        $sth->execute();
-        $resultAfected = $sth->rowCount();
+        $sth->execute($params);
         $this->commitConection();
-        
-        return $id;
+
+        $keyVals = array_values($keys);
+        return $keyVals[0];
     }
         
     /**
@@ -165,39 +120,37 @@ class Connection{
      */
     function delete($object)
     {
-        $pieces = explode(DIRECTORY_SEPARATOR, get_class($object));
-        $nameTable = $pieces[sizeof($pieces) - 1];
-        
-        $sql = '';
-        $where = '';
-        
-        $tempjson = json_encode($object);
-        $json = json_decode($tempjson, true);
-        
-        $jsonKeys = array_keys($json);
-        $jsonData = array_values($json);
-        
-        $resultSize = 0;
-        
-        for ($i = 0; $i < sizeof($jsonKeys); $i ++) {
-            if (strcasecmp('id', $jsonKeys[$i]) == 0) {
-                $where = 'id=' . $jsonData[$i];
-                $resultSize = $jsonData[$i];
+        $pieces = explode('\\', get_class($object));
+        $nameTable = strtolower($pieces[sizeof($pieces) - 1]);
+        $keys = $object->getKeys();
+
+        $wheres = array();
+        $params = array();
+        $i = 0;
+
+        foreach ($keys as $keyName => $keyVal) {
+            if ($keyVal === null || $keyVal === '') {
+                continue;
             }
+            $ph = ':w' . $i;
+            $wheres[] = '`' . str_replace('`', '', $keyName) . '` = ' . $ph;
+            $params[$ph] = $keyVal;
+            $i++;
         }
-        
-        // Concatena todas as variaveis e finaliza a instrucao
-        $sql .= ' DELETE FROM `' . $this->bancoName . '`.`' . $nameTable . '`';
-        $sql .= ' WHERE ' . $where;
-        
+
+        if (count($wheres) === 0) {
+            throw new \InvalidArgumentException('DELETE sem chave primária');
+        }
+
+        $sql = 'DELETE FROM `' . $this->bancoName . '`.`' . $nameTable . '` WHERE ' . implode(' AND ', $wheres);
+
         $this->showCase($sql);
-        
         $this->beginConnection();
         $sth = $this->pdo_->prepare($sql);
-        $sth->execute();  
-        $resultSize= $sth->rowCount();
+        $sth->execute($params);
+        $resultSize = $sth->rowCount();
         $this->commitConection();
-        
+
         return $resultSize;
     }
         
@@ -222,6 +175,7 @@ class Connection{
     	$jsonData = "";
     	$list = null;
     	$id = 0;
+    	$orderColun = '';
     	
         $pieces = explode('\\', get_class($object));
         
@@ -293,7 +247,7 @@ class Connection{
      *            == (true -> 'ASC' or false-> 'DESC')
      * @return array object
      */
-    function getAll($table, $where, $orderColun, $order = true, $page, $sizePage)
+    function getAll($table, $where, $orderColun, $order, $page, $sizePage)
     {   
         $table = strtolower($table);
         $lista = $this->showColum($table);
@@ -311,7 +265,7 @@ class Connection{
                 $virgula = ',';
             }
         
-            $coluns .= $virgula . $row['Field'];
+            $coluns .= $virgula . '`' . str_replace('`', '', $row['Field']) . '`';
             $cont ++;
         }
         
@@ -353,7 +307,7 @@ class Connection{
             }
         }
         
-        if (!(strcasecmp(null, $page) == 0) && $sizePage > 0) {
+        if ($page !== null && $page !== '' && $sizePage > 0) {
         	if($page > 0){
             	$sql .= ' LIMIT ' . ($page - 1) * $sizePage . ',' . $sizePage;
         	}else{
@@ -416,13 +370,13 @@ class Connection{
         $this->bancoName   = $host->getBanco();
         $this->showcaseSQL = $host->getShowDebug();
         
-        $dsn = 'mysql:dbname=' . $host->getBanco() . ';host=' . $host->getIp().';charset=utf8';
+        $dsn = 'mysql:dbname=' . $host->getBanco() . ';host=' . $host->getIp().';charset=utf8mb4';
         
         $options = [
-            \PDO::ATTR_EMULATE_PREPARES   => false, // turn off emulation mode for 'real' prepared statements
-            \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION, //turn on errors in the form of exceptions
-            \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8',
-            \PDO::ATTR_PERSISTENT => true
+            \PDO::ATTR_EMULATE_PREPARES   => false,
+            \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
+            \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4',
+            \PDO::ATTR_PERSISTENT => false
         ];
         
         try{

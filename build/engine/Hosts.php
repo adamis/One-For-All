@@ -14,15 +14,15 @@ class Hosts{
     
     function __construct() {
         if($this->oficial){
-            $this->banco   = "oseasy-dev";
-            $this->ip      = "192.168.0.223";
-            $this->usuario = "admin";
-            $this->senha   = "Adamis1234@";
+            $this->banco   = "oseasy-local";
+            $this->ip      = "localhost";
+            $this->usuario = "root";
+            $this->senha   = "";
         }else{
-            $this->banco   = "oseasy-dev";
-            $this->ip      = "192.168.0.223";
-            $this->usuario = "admin";
-            $this->senha   = "Adamis1234@";
+            $this->banco   = "oseasy-local";
+            $this->ip      = "localhost";
+            $this->usuario = "root";
+            $this->senha   = "";
         }
     }
     

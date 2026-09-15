@@ -1,21 +1,22 @@
 <?php
-//-----------------------CREATE_DAO--------------------------------------
+//-----------------------CREATE_ADAPTER--------------------------------------
 
-function createDaos() {
+function createAdapters() {
     $tables = getAllTables();
     
-    while ($tableRow = $tables->fetch()) {
-        // Compatibilidade PHP 8: extrair nome da tabela
-        $table = [is_array($tableRow) ? array_values($tableRow)[0] : $tableRow];
+    while ($table = $tables->fetch()) {
+        if (!shouldGenerateCrud($table[0])) {
+            continue;
+        }
         
         $strHeader = "<?php
-namespace engine\dao;
+namespace engine\adapter;
 ";
-        $strHeader = setUseDao($strHeader,"engine\model\\".ucfirst($table[0]));
-        $strHeader = setUseDao($strHeader,"engine\utils\FilterWhere");
+        $strHeader = setUseAdapter($strHeader,"engine\dao\\".ucfirst($table[0]));
+        $strHeader = setUseAdapter($strHeader,"engine\utils\FilterWhere");
         
         $str = "
-class ".ucfirst($table[0])."Dao {
+class ".ucfirst($table[0])."Adapter {
 			
     private \$connection;
     	
@@ -34,22 +35,17 @@ class ".ucfirst($table[0])."Dao {
             \$".$table[0]." = new ".ucfirst($table[0])."();            
          ";
            
+            $fkByColumn = array();
+            $fks = getFk($table[0]);
+            while ($fk = $fks->fetch()) {
+                $fkByColumn[$fk['coluna']] = $fk;
+            }
+
             $coluns = getColum($table[0]);
                 
             while ( $row = $coluns->fetch() ) {
-                $control = true;
-                
-                $field = $row ['Field'];                
-                
-                $fks    = getFk($table[0]);
-                
-                while ( $fk = $fks->fetch() ) {
-                    
-                    if($field == $fk['coluna']){
-                        $control = false;                        
-                    }
-                    
-                }
+                $field = $row ['Field'];
+                $control = !isset($fkByColumn[$field]);
                 
                 if($control){//CAMPO NORMAL
                     $str .= "
@@ -59,20 +55,19 @@ class ".ucfirst($table[0])."Dao {
                 
                 }else{//FK
                 
-                    $fkTable = getFkTable($table[0],$row ['Field']);
-                    $tab = $fkTable->fetch();
+                    $tab = $fkByColumn[$field];
                     
                     $str .= "
            if(\$result['".$row ['Field']."'] != null){
                 //".strtoupper($row ['Field'])."
-                \$".$tab['tabela_referencia']."Dao = new ".ucfirst($tab['tabela_referencia'])."Dao(\$this->connection);
+                \$".$tab['tabela_referencia']."Adapter = new ".ucfirst($tab['tabela_referencia'])."Adapter(\$this->connection);
 				\$filter = new FilterWhere();
                 \$filter->setCollum('".$tab["coluna_referencia"]."');
                 \$filter->setValue(\$result['".$row ['Field']."']);
                 \$list = Array(\$filter);                
 
 
-                \$result".ucfirst($tab['tabela_referencia'])." = \$".$tab['tabela_referencia']."Dao->getAll(\$list, \"\", \"\", 0, 0);
+                \$result".ucfirst($tab['tabela_referencia'])." = \$".$tab['tabela_referencia']."Adapter->getAll(\$list, \"\", \"\", 0, 0);
             	\$".$table[0]."->set".ucfirst($row ['Field'])."(\$result".ucfirst($tab['tabela_referencia'])."[0]);
                 
            }
@@ -114,11 +109,11 @@ class ".ucfirst($table[0])."Dao {
 }
 ?>";
         
-        gravar("engine/dao/".ucfirst($table[0])."Dao.php", $strHeader.$str);
+        gravar("engine/adapter/".ucfirst($table[0])."Adapter.php", $strHeader.$str);
     }
 }
 
-function setUseDao($strHeader,$table) {
+function setUseAdapter($strHeader,$table) {
 	
 	if (strpos($strHeader, ucfirst($table)) !== false) {
 		$strHeader = $strHeader;
@@ -133,5 +128,5 @@ function setUseDao($strHeader,$table) {
 
 
 
-//-----------------------CREATE_DAO--------------------------------------
+//-----------------------CREATE_ADAPTER--------------------------------------
 ?>

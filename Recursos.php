@@ -24,14 +24,22 @@ function getBarramento()
         
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Barramento</h5>  
-                <p class="card-text">
-                    Todas as suas apis serão listadas aqui!
-                    <br>
-                    <span style="font-size: 10px; font-weight: bold;">Build 1.0 %dataAtual%</span>
-                </p>                 
+            <h5 class="card-title">Barramento</h5>  
+            <p class="card-text">Todas as suas apis serão listadas aqui!</p>  
             </div>
         </div>
+<?php
+    if (class_exists(\'engine\\SecurityConfig\') && \\engine\\SecurityConfig::enabled()) {
+        echo \'<div class="card" style="margin:20px;"><div class="card-body">\';
+        echo \'<h5 class="card-title">OAuth2</h5>\';
+        echo \'<p class="card-text">APIs protegidas. Obtenha o token em <code>POST /api/oauth/token</code> com <code>grant_type=password</code>, <code>username</code> e <code>password</code>. Envie <code>Authorization: Bearer {access_token}</code> nas demais rotas. Refresh: <code>grant_type=refresh_token</code>.</p>\';
+        $credFile = __DIR__ . \'/engine/oauth-admin.txt\';
+        if (is_file($credFile)) {
+            echo \'<pre style="background:#f5f5f5;padding:12px;white-space:pre-wrap;">\' . htmlspecialchars(file_get_contents($credFile), ENT_QUOTES, \'UTF-8\') . \'</pre>\';
+        }
+        echo \'</div></div>\';
+    }
+?>
 
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -241,7 +249,7 @@ function getBarramento()
                         <div class="form-group">
                                                         
                             <label for="exampleInputEmail1">Função:</label>                            
-                            <select id="methodSelect<?=$cont?>" onchange="toggleJsonField(<?=$cont?>)">
+                            <select>
 <?php
                             foreach ($permission as $key) {
                                 if((\'http://\'.$host.$key[2]) == $temp){                
@@ -252,14 +260,6 @@ function getBarramento()
                             </select>
                             <small id="emailHelp" class="form-text text-muted">Selecione a função que deseja testar!</small>    
 
-                        </div>
-
-                        <!-- Campo JSON para POST/PUT -->
-                        <div id="jsonField<?=$cont?>" class="form-group" style="display:none;">
-                            <label for="jsonInput<?=$cont?>">Corpo da Requisição (JSON):</label>
-                            <textarea id="jsonInput<?=$cont?>" class="form-control" rows="8" placeholder=\'{"exemplo": "valor", "campo": 123}\'></textarea>
-                            <small class="form-text text-muted">Cole ou digite o JSON que será enviado no corpo da requisição (POST/PUT)</small>
-                            <button type="button" onclick="formatJson(<?=$cont?>)" class="btn btn-sm btn-secondary mt-2">Formatar JSON</button>
                         </div>
                         
 
@@ -331,15 +331,6 @@ function getBarramento()
     <script type="text/javascript">
         <?php echo $script; ?>
 
-        //-------------- FUNÇÕES AUXILIARES --------------------------
-        function gI(id) { return document.getElementById(id); }
-        function gL(obj) { return obj ? obj.length : 0; }
-        function gY(obj) { return obj ? obj.type : null; }
-        function gC(obj) { return obj ? obj.className : \'\'; }
-        function gV(obj) { return obj ? obj.value : \'\'; }
-        function gH(obj) { return obj ? obj.innerHTML : null; }
-        //-------------- FIM FUNÇÕES AUXILIARES --------------------------
-
         //-------------- PRETTY --------------------------
         if (!library)
         var library = {};
@@ -402,86 +393,42 @@ function getBarramento()
             }
         }
 
-        function toggleJsonField(idForm) {
-            var select = document.getElementById(\'methodSelect\'+idForm);
-            var jsonField = document.getElementById(\'jsonField\'+idForm);
-            var selectedValue = select.value;
-            var type = selectedValue.split(\':\')[0];
-            
-            if (type === \'POST\' || type === \'PUT\') {
-                jsonField.style.display = \'block\';
-            } else {
-                jsonField.style.display = \'none\';
-            }
-        }
-
-        function formatJson(idForm) {
-            var textarea = document.getElementById(\'jsonInput\'+idForm);
-            try {
-                var json = JSON.parse(textarea.value);
-                textarea.value = JSON.stringify(json, null, 2);
-            } catch (e) {
-                alert(\'JSON inválido: \' + e.message);
-            }
-        }
-
         function exec(url,idForm) {
             var type;
             var funcName;
             var params ="";
-            
-            var result = getForm(idForm).split(\'<gz>\');
-            
-            // Pegar o tipo e nome da função
-            if(result.length > 0){
-                var func = result[0].split(\':\');
-                type = func[0];
-                funcName = func[1];
-            }
-            
-            // Verificar se há JSON para POST/PUT
-            var jsonInput = document.getElementById(\'jsonInput\'+idForm);
-            var hasJson = jsonInput && jsonInput.value.trim() !== \'\';
-            
-            if((type === \'POST\' || type === \'PUT\') && hasJson){
-                // Usar JSON do textarea
-                try {
-                    var jsonData = JSON.parse(jsonInput.value);
-                    var jsonString = JSON.stringify(jsonData);
-                    request(type,"http://"+url+funcName, jsonString, \'resultconsole\',idForm, true);
-                } catch(e) {
-                    alert(\'JSON inválido: \' + e.message);
-                    return;
-                }
-            } else {
-                // Usar parâmetros tradicionais
-                for (let index = 0; index < result.length;index++) {
-                    if(index == 0){
-                        var func = result[index].split(\':\');
-                        type = func[0];
-                        funcName = func[1];
-
-                    }else{
-
-                        if(index%2 == 1){                        
-                            params += result[index];                         
-                        }else{                        
-                            params += "="+result[index]; 
-                            
-                            if(index+1 != result.length){
-                                params += "&";
-                            }
-                        }
                         
-                    }                
-                }           
+            var result = getForm(idForm).split(\'<gz>\');
 
-                if(type == \'GET\' || type == \'DELETE\'){
-                    request(type,"http://"+url+funcName +"?"+ params, null, \'resultconsole\',idForm);            
+            for (let index = 0; index < result.length;index++) {
+                if(index == 0){
+                    var func = result[index].split(\':\');
+                    type = func[0];
+                    funcName = func[1];
+
                 }else{
-                    request(type,"http://"+url+funcName, params, \'resultconsole\',idForm);            
-                }
+
+                    if(index%2 == 1){                        
+                        params += result[index];                         
+                    }else{                        
+                        params += "="+result[index]; 
+                        
+                        if(index+1 != result.length){
+                            params += "&";
+                        }
+                    }
+                    
+                }                
+            }           
+            //alert(params);
+
+            if(type == \'GET\'){
+                request(type,"http://"+url+funcName +"?"+ params, null, \'resultconsole\',idForm);            
+            }else{
+                request(type,"http://"+url+funcName, params, \'resultconsole\',idForm);            
             }
+            
+
         }
 
         function resultconsole(msg,status,idForm){
@@ -501,17 +448,11 @@ function getBarramento()
             
         }
 
-        function request(method, url, object, callback,idForm, isJson) {
+        function request(method, url, object, callback,idForm) {
             var request = new XMLHttpRequest();
             request.open(method, url, true);			
             request.setRequestHeader("Accept-Language", "pt-BR");
-            
-            // Definir Content-Type baseado no tipo de dados
-            if (isJson) {
-                request.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
-            } else {
-                request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-            }
+            request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
             request.onreadystatechange = function() {
                 if (request.readyState == 4 && (request.status == 200 || request.status == 300)) {
                     
@@ -804,60 +745,39 @@ class Connection{
      */
     private function insert(\$object)
     {
-        \$id = null;
-        
         \$pieces = explode('\\\', get_class(\$object));
-        \$nameTable = \$pieces[sizeof(\$pieces) - 1];
-        //TO LOWER
-        \$nameTable = strtolower(\$nameTable);
-        
-        \$campos = '';
-        \$valores = '';
-        \$sql = '';
-        
-        
+        \$nameTable = strtolower(\$pieces[sizeof(\$pieces) - 1]);
+
         \$json = json_decode(json_encode(\$object), true);
-        \$jsonKeys = array_keys(\$json);
-        \$jsonData = array_values(\$json);
-        
-        \$virgula = '';
-        \$aspas = '';
-        
-        for (\$i = 0; \$i < sizeof(\$jsonKeys); \$i ++) {
-            if (\$i > 0) {
-                \$virgula = ',';
-            } else {
-                \$virgula = '';
+        \$campos = array();
+        \$placeholders = array();
+        \$params = array();
+        \$i = 0;
+
+        foreach (\$json as \$key => \$value) {
+            if (\$value === null) {
+                continue;
             }
-        
-            \$campos .= (\$virgula . \$jsonKeys[\$i]);
-        
-            if (strcasecmp('string', gettype(\$jsonData[\$i])) == 0) {
-                \$aspas = '\\'';
-            } else {
-                \$aspas = '';
-            }
-        
-            if (\$jsonData[\$i] == null) {
-                \$valores .= (\$virgula . 'null');
-            } else {
-                \$valores .= (\$virgula . \$aspas . \$jsonData[\$i] . \$aspas);
-            }
+            \$ph = ':p' . \$i;
+            \$campos[] = '`' . str_replace('`', '', \$key) . '`';
+            \$placeholders[] = \$ph;
+            \$params[\$ph] = \$value;
+            \$i++;
         }
-        
-        // Concatena todas as variaveis e finaliza a instrucao
-        \$sql .= 'INSERT INTO `' . \$this->bancoName . '`.`' . \$nameTable . '` (' . \$campos . ')VALUES(' . \$valores . ')';
-        
+
+        if (count(\$campos) === 0) {
+            throw new \InvalidArgumentException('INSERT sem colunas');
+        }
+
+        \$sql = 'INSERT INTO `' . \$this->bancoName . '`.`' . \$nameTable . '` (' . implode(',', \$campos) . ') VALUES (' . implode(',', \$placeholders) . ')';
+
         \$this->showCase(\$sql);
-        
-        
         \$this->beginConnection();
         \$sth = \$this->pdo_->prepare(\$sql);
-        \$sth->execute();
+        \$sth->execute(\$params);
         \$id = \$this->pdo_->lastInsertId();
         \$this->commitConection();
-        
-        
+
         return \$id;
     }
         
@@ -871,67 +791,43 @@ class Connection{
     private function update(\$object)
     {
         \$pieces = explode('\\\', get_class(\$object));
-        \$nameTable = \$pieces[sizeof(\$pieces) - 1];
-        
-        
-        //TO LOWER
-        \$nameTable = strtolower(\$nameTable);
-        
-        \$set = '';
-        \$sql = '';
-        
-        
+        \$nameTable = strtolower(\$pieces[sizeof(\$pieces) - 1]);
         \$json = json_decode(json_encode(\$object), true);
-        \$jsonKeys = array_keys(\$json);
-        \$jsonData = array_values(\$json);
-        
-        \$virgula = '';
-        \$aspas = '';
-        \$where = '';
-        \$id = null;
-        
-        for (\$i = 0; \$i < sizeof(\$jsonKeys); \$i ++) {
-            if (\$i > 0) {
-                \$virgula = ',';
-            } else {
-                \$virgula = '';
-            }
-        
-            \$dados = '';
-            if (\$jsonData[\$i] == null) {
-                \$dados = 'null';
-            } else {
-                \$dados = \$jsonData[\$i];
-            }
-        
-            if (strcasecmp('string', gettype(\$jsonData[\$i])) == 0) {
-                \$aspas = '\\'';
-            } else {
-                \$aspas = '';
-            }
-        
-            if (strcasecmp('id', \$jsonKeys[\$i]) == 0) {
-                \$where = 'id=' . \$jsonData[\$i];
-                \$id = \$jsonData[\$i];
-            }
-        
-            \$set .= (\$virgula . \$jsonKeys[\$i] . '=' . \$aspas . \$dados . \$aspas);
+        \$keys = \$object->getKeys();
+
+        \$sets = array();
+        \$params = array();
+        \$i = 0;
+
+        foreach (\$json as \$key => \$value) {
+            \$ph = ':p' . \$i;
+            \$sets[] = '`' . str_replace('`', '', \$key) . '` = ' . \$ph;
+            \$params[\$ph] = \$value;
+            \$i++;
         }
-        
-        // Concatena todas as variaveis e finaliza a instrucao
-        \$sql .= ' UPDATE `' . \$this->bancoName . '`.`' . \$nameTable . '`';
-        \$sql .= ' SET ' . \$set;
-        \$sql .= ' WHERE ' . \$where;
-        
+
+        \$wheres = array();
+        foreach (\$keys as \$keyName => \$keyVal) {
+            \$ph = ':w' . \$i;
+            \$wheres[] = '`' . str_replace('`', '', \$keyName) . '` = ' . \$ph;
+            \$params[\$ph] = \$keyVal;
+            \$i++;
+        }
+
+        if (count(\$wheres) === 0) {
+            throw new \InvalidArgumentException('UPDATE sem chave primária');
+        }
+
+        \$sql = 'UPDATE `' . \$this->bancoName . '`.`' . \$nameTable . '` SET ' . implode(',', \$sets) . ' WHERE ' . implode(' AND ', \$wheres);
+
         \$this->showCase(\$sql);
-        
         \$this->beginConnection();
         \$sth = \$this->pdo_->prepare(\$sql);
-        \$sth->execute();
-        \$resultAfected = \$sth->rowCount();
+        \$sth->execute(\$params);
         \$this->commitConection();
-        
-        return \$id;
+
+        \$keyVals = array_values(\$keys);
+        return \$keyVals[0];
     }
         
     /**
@@ -943,39 +839,37 @@ class Connection{
      */
     function delete(\$object)
     {
-        \$pieces = explode(DIRECTORY_SEPARATOR, get_class(\$object));
-        \$nameTable = \$pieces[sizeof(\$pieces) - 1];
-        
-        \$sql = '';
-        \$where = '';
-        
-        \$tempjson = json_encode(\$object);
-        \$json = json_decode(\$tempjson, true);
-        
-        \$jsonKeys = array_keys(\$json);
-        \$jsonData = array_values(\$json);
-        
-        \$resultSize = 0;
-        
-        for (\$i = 0; \$i < sizeof(\$jsonKeys); \$i ++) {
-            if (strcasecmp('id', \$jsonKeys[\$i]) == 0) {
-                \$where = 'id=' . \$jsonData[\$i];
-                \$resultSize = \$jsonData[\$i];
+        \$pieces = explode('\\\', get_class(\$object));
+        \$nameTable = strtolower(\$pieces[sizeof(\$pieces) - 1]);
+        \$keys = \$object->getKeys();
+
+        \$wheres = array();
+        \$params = array();
+        \$i = 0;
+
+        foreach (\$keys as \$keyName => \$keyVal) {
+            if (\$keyVal === null || \$keyVal === '') {
+                continue;
             }
+            \$ph = ':w' . \$i;
+            \$wheres[] = '`' . str_replace('`', '', \$keyName) . '` = ' . \$ph;
+            \$params[\$ph] = \$keyVal;
+            \$i++;
         }
-        
-        // Concatena todas as variaveis e finaliza a instrucao
-        \$sql .= ' DELETE FROM `' . \$this->bancoName . '`.`' . \$nameTable . '`';
-        \$sql .= ' WHERE ' . \$where;
-        
+
+        if (count(\$wheres) === 0) {
+            throw new \InvalidArgumentException('DELETE sem chave primária');
+        }
+
+        \$sql = 'DELETE FROM `' . \$this->bancoName . '`.`' . \$nameTable . '` WHERE ' . implode(' AND ', \$wheres);
+
         \$this->showCase(\$sql);
-        
         \$this->beginConnection();
         \$sth = \$this->pdo_->prepare(\$sql);
-        \$sth->execute();  
-        \$resultSize= \$sth->rowCount();
+        \$sth->execute(\$params);
+        \$resultSize = \$sth->rowCount();
         \$this->commitConection();
-        
+
         return \$resultSize;
     }
         
@@ -1000,6 +894,7 @@ class Connection{
     	\$jsonData = \"\";
     	\$list = null;
     	\$id = 0;
+    	\$orderColun = '';
     	
         \$pieces = explode('\\\', get_class(\$object));
         
@@ -1071,7 +966,7 @@ class Connection{
      *            == (true -> 'ASC' or false-> 'DESC')
      * @return array object
      */
-    function getAll(\$table, \$where, \$orderColun, \$order = true, \$page, \$sizePage)
+    function getAll(\$table, \$where, \$orderColun, \$order, \$page, \$sizePage)
     {   
         \$table = strtolower(\$table);
         \$lista = \$this->showColum(\$table);
@@ -1089,7 +984,7 @@ class Connection{
                 \$virgula = ',';
             }
         
-            \$coluns .= \$virgula . \$row['Field'];
+            \$coluns .= \$virgula . '`' . str_replace('`', '', \$row['Field']) . '`';
             \$cont ++;
         }
         
@@ -1131,7 +1026,7 @@ class Connection{
             }
         }
         
-        if (!(strcasecmp(null, \$page) == 0) && \$sizePage > 0) {
+        if (\$page !== null && \$page !== '' && \$sizePage > 0) {
         	if(\$page > 0){
             	\$sql .= ' LIMIT ' . (\$page - 1) * \$sizePage . ',' . \$sizePage;
         	}else{
@@ -1194,13 +1089,13 @@ class Connection{
         \$this->bancoName   = \$host->getBanco();
         \$this->showcaseSQL = \$host->getShowDebug();
         
-        \$dsn = 'mysql:dbname=' . \$host->getBanco() . ';host=' . \$host->getIp().';charset=utf8';
+        \$dsn = 'mysql:dbname=' . \$host->getBanco() . ';host=' . \$host->getIp().';charset=utf8mb4';
         
         \$options = [
-            \PDO::ATTR_EMULATE_PREPARES   => false, // turn off emulation mode for 'real' prepared statements
-            \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION, //turn on errors in the form of exceptions
-            \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8',
-            \PDO::ATTR_PERSISTENT => true
+            \PDO::ATTR_EMULATE_PREPARES   => false,
+            \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
+            \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4',
+            \PDO::ATTR_PERSISTENT => false
         ];
         
         try{
@@ -1302,7 +1197,7 @@ define('URI', \$_SERVER['REQUEST_URI']);
 define('TIME_FLOAT', \$_SERVER['REQUEST_TIME_FLOAT']);
 
 define('BARRA', DIRECTORY_SEPARATOR);
-date_default_timezone_set ( \"America/Sao_Paulo\" );
+
 
 
 /*
@@ -1320,7 +1215,7 @@ if (isset(\$_SERVER[\"HTTP_ORIGIN\"])) {
 if (\$_SERVER[\"REQUEST_METHOD\"] == \"OPTIONS\") {
 	
     if (isset(\$_SERVER[\"HTTP_ACCESS_CONTROL_REQUEST_METHOD\"]))
-        header(\"Access-Control-Allow-Methods: GET, POST, OPTIONS\");
+        header(\"Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS\");
 
     if (isset(\$_SERVER[\"HTTP_ACCESS_CONTROL_REQUEST_HEADERS\"]))
         header(\"Access-Control-Allow-Headers: \" . \$_SERVER[\"HTTP_ACCESS_CONTROL_REQUEST_HEADERS\"]);
@@ -1357,18 +1252,14 @@ if(METHOD == \"PUT\"){
 }
 
 function getHtAccess() {
-	$str = "Options -Indexes
-
-RewriteEngine On
-RewriteBase /".PROJECT."/
-
-RewriteRule ^api/(\w+)/(\w+)/?$ engine/Router.php?class=$1&method=$2&param=api [NC,L,QSA]
-
-RewriteRule ^web/(\w+)/(\w+)/?$ engine/Router.php?class=$1&method=$2&param=web [NC,L]
-
-RewriteRule ^barramento/?$ barramento.php [NC,L]";
-    
-gravar(".htaccess", $str);
+	$str = "Options -Indexes\nDirectoryIndex index.php OneForAll.php\n\nRewriteEngine On\nRewriteBase /" . PROJECT . "/\n\n";
+	$str .= "RewriteCond %{HTTP:Authorization} .\n";
+	$str .= 'RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]' . "\n";
+	$str .= 'SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1' . "\n\n";
+	$str .= 'RewriteRule ^api/(\w+)/(\w+)/?$ engine/Router.php?class=$1&method=$2&param=api [NC,L,QSA]' . "\n\n";
+	$str .= 'RewriteRule ^web/(\w+)/(\w+)/?$ engine/Router.php?class=$1&method=$2&param=web [NC,L]' . "\n\n";
+	$str .= 'RewriteRule ^barramento/?$ barramento.php [NC,L]';
+    gravar(".htaccess", $str);
 }
 
 function getAcls() {
@@ -1385,12 +1276,22 @@ class Acl {
         ';
 
         $tables = getAllTables();
+
+        if (isSecurityEnabled()) {
+            $str .= '
+            $permission = $this->setRouter("oauth","POST","token",$permission);
+';
+        }
 	
         while ($table = $tables->fetch()) {
+            if (!shouldGenerateCrud($table[0])) {
+                continue;
+            }
             $str .= "
             
-            //".strtoupper($table[0])."            
-            \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"GET\"   ,\"findAll\"    ,\$permission);            
+            //".strtoupper($table[0])."
+            \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"POST\"  ,\"find\",\$permission);
+            \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"GET\"   ,\"findAll\"    ,\$permission);
             \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"DELETE\",\"remove\" ,\$permission);
             \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"PUT\"   ,\"update\"    ,\$permission);
             \$permission = \$this->setRouter(\"".strtolower($table[0])."\",\"POST\"  ,\"create\" ,\$permission);
@@ -1421,18 +1322,29 @@ class Acl {
 function getRouter() {
 	$str="<?php
 	use engine\Hosts;
+    use engine\\auth\\TokenGuard;
     use engine\Acl;
 
 	include_once 'interactor/base.php';
 	include_once '../Autoload.php';
+
+	\$_GET[\"class\"] = preg_replace('/[^a-z0-9_]/i', '', \$_GET[\"class\"] ?? '');
+	\$_GET[\"method\"] = preg_replace('/[^a-z0-9_]/i', '', \$_GET[\"method\"] ?? '');
+	\$_GET[\"param\"] = preg_replace('/[^a-z0-9_]/i', '', \$_GET[\"param\"] ?? '');
+
+	if(\$_GET[\"param\"] == 'api'){
+		header(\"Content-type: application/json; charset=UTF-8\");
+	}
+
+	if (file_exists(__DIR__ . '/auth/TokenGuard.php')) {
+		TokenGuard::assert(\$_GET[\"class\"], \$_GET[\"method\"]);
+	}
 	
 	if(\$_GET[\"param\"] == 'api'){
 		
 		\$Hosts = new Hosts();
-				
-		header(\"Content-type: application/json; charset=UTF-8\");		
 		
-		if(file_exists(\"interactor/\".\$_GET[\"class\"].'.php')){
+		if(\$_GET[\"class\"] !== '' && file_exists(\"interactor/\".\$_GET[\"class\"].'.php')){
 			include_once \"interactor/\".\$_GET[\"class\"].'.php';
 		}
 	}
@@ -1484,14 +1396,11 @@ function getRouter() {
 			  }
 			}
 		}
-		if(\$acess){
-			return \$this_string = ob_get_contents();
-		}else{
+		if(!\$acess){
             http_response_code(401);
-			echo \"ACESSO NEGADO!\";
-			return \$this_string = ob_get_contents();
+			echo json_encode(array(\"erro\" => \"ACESSO NEGADO!\"));
 		}
-		ob_end_clean();
+		ob_end_flush();
 	}
 ?>";
 	gravar(FOLDER."/Router.php", $str);
@@ -1508,7 +1417,7 @@ class ResponseDelete implements \JsonSerializable
     private \$size;
 
     
-    public function jsonSerialize()
+    public function jsonSerialize(): mixed
     {
         return ['status' => \$this->getStatus(),
             'size' => \$this->getSize()        		
@@ -1929,7 +1838,7 @@ class ChromePhp
      */
     protected function _encode(\$data)
     {
-        return base64_encode(utf8_encode(json_encode(\$data)));
+        return base64_encode(json_encode(\$data, JSON_UNESCAPED_UNICODE));
     }
 
     /**
@@ -2009,6 +1918,10 @@ class FilterWhere{
 	
 	function setCondition(\$condition)
 	{
+		\$allowed = array('=', 'like', '>', '<', '>=', '<=', '!=', '<>');
+		if (!in_array(strtolower(\$condition), \$allowed, true)) {
+			\$condition = '=';
+		}
 		\$this->condition = \$condition;
 	}
 	
@@ -2022,295 +1935,6 @@ class FilterWhere{
 ?>";
 	gravar(UTILS."FilterWhere.php", $str);
 }
-
-
-function getPageable() {
-    $str = "<?php
-namespace engine\dao;
-
-class Pageable implements \JsonSerializable
-{
-
-    public \$offset; //Integer
-    public \$paged; //Boolean
-    public \$pageNumber; //Integer
-    public \$pageSize; //Integer
-    public \$sort; //Sort
-    public \$unpaged; //Boolean
-
-    public function jsonSerialize()
-    {
-        return [
-            'offset' => \$this->getOffset(),
-            'paged' => \$this->getPaged(),
-            'pageNumber' => \$this->getPageNumber(),
-            'pageSize' => \$this->getPageSize(),
-            'sort' => \$this->getSort(),
-            'unpaged' => \$this->getUnpaged(),
-        ];
-    }
-
-    public function getOffset()
-    {
-        return \$this->offset;
-    }
-    public function setOffset(\$offset)
-    {
-        \$this->offset = \$offset;
-    }
-    public function getPaged()
-    {
-        return \$this->paged;
-    }
-    public function setPaged(\$paged)
-    {
-        \$this->paged = \$paged;
-    }
-    public function getPageNumber()
-    {
-        return \$this->pageNumber;
-    }
-    public function setPageNumber(\$pageNumber)
-    {
-        \$this->pageNumber = \$pageNumber;
-    }
-    public function getPageSize()
-    {
-        return \$this->pageSize;
-    }
-    public function setPageSize(\$pageSize)
-    {
-        \$this->pageSize = \$pageSize;
-    }
-    public function getSort()
-    {
-        return \$this->sort;
-    }
-    public function setSort(\$sort)
-    {
-        \$this->sort = \$sort;
-    }
-    public function getUnpaged()
-    {
-        return \$this->unpaged;
-    }
-    public function setUnpaged(\$unpaged)
-    {
-        \$this->unpaged = \$unpaged;
-    }
-
-}";
-    
-    gravar(DAO."/Pageable.php", $str);
-}
-
-function getRootClass() {
-    $str = "<?php
-namespace engine\dao;
-
-class RootClass implements \JsonSerializable
-{
-
-    public \$content; //Object
-    public \$empty; //Boolean
-    public \$first; //Boolean
-    public \$last; //Boolean
-    public \$number; //Integer
-    public \$numberOfElements; //Integer
-    public \$pageable; //Pageable
-    public \$size; //Integer
-    public \$sort; //Sort
-    public \$totalElements; //Integer
-    public \$totalPages; //Integer
-
-    public function jsonSerialize()
-    {
-        return [
-            'content' => \$this->getContent(),
-            'empty' => \$this->getContent() == null?true:false,
-            'first' => (\$this->getPageable()->getPageNumber() == 0)?true:false,
-            'last' => ((\$this->getTotalPages()-1) == \$this->getPageable()->getPageNumber()) ?true:false,
-            'number' => \$this->getPageable()->getPageNumber(),
-            'numberOfElements' => sizeof(\$this->getContent()),
-            'pageable' => \$this->getPageable(),
-            'size' => sizeof(\$this->getContent()),
-            'sort' => \$this->getSort(),
-            'totalElements' => \$this->getTotalElements(),
-            'totalPages' => \$this->getTotalPages()
-        ];
-    }
-
-    public function getContent()
-    {
-        return \$this->content;
-    }
-    public function setContent(\$content)
-    {
-        \$this->content = \$content;
-    }
-    public function getEmpty()
-    {
-        return \$this->empty;
-    }
-    public function getFirst()
-    {
-        return \$this->first;
-    }
-    public function setFirst(\$first)
-    {
-        \$this->first = \$first;
-    }
-    public function getLast()
-    {
-        return \$this->last;
-    }
-    public function setLast(\$last)
-    {
-        \$this->last = \$last;
-    }
-    public function getNumber()
-    {
-        return \$this->number;
-    }
-    public function setNumber(\$number)
-    {
-        \$this->number = \$number;
-    }
-    public function getNumberOfElements()
-    {
-        return \$this->numberOfElements;
-    }
-    public function setNumberOfElements(\$numberOfElements)
-    {
-        \$this->numberOfElements = \$numberOfElements;
-    }
-    public function getPageable()
-    {
-        return \$this->pageable;
-    }
-    public function setPageable(\$pageable)
-    {
-        \$this->pageable = \$pageable;
-    }
-    public function getSize()
-    {
-        return \$this->size;
-    }
-    public function setSize(\$size)
-    {
-        \$this->size = \$size;
-    }
-    public function getSort()
-    {
-        return \$this->sort;
-    }
-    public function setSort(\$sort)
-    {
-        \$this->sort = \$sort;
-    }
-    public function getTotalElements()
-    {
-        return \$this->totalElements;
-    }
-    public function setTotalElements(\$totalElements)
-    {
-        \$this->totalElements = \$totalElements;
-    }
-    public function getTotalPages()
-    {
-        return \$this->totalPages;
-    }
-    public function setTotalPages(\$totalPages)
-    {
-        \$this->totalPages = \$totalPages;
-    }
-
-}";
-    
-    gravar(DAO."/RootClass.php", $str);
-}
-
-
-function getSort() {
-    $str = "<?php
-namespace engine\dao;
-
-class Sort
-{
-
-    public \$empty; //Boolean
-    public \$sorted; //Boolean
-    public \$unsorted; //Boolean
-    
-    public function getEmpty() { 
-            return \$this->empty; 
-    }
-    public function setEmpty(\$empty) { 
-            \$this->empty = \$empty; 
-    }    
-    public function getSorted() { 
-            return \$this->sorted; 
-    }
-    public function setSorted(\$sorted) { 
-            \$this->sorted = \$sorted; 
-    }    
-    public function getUnsorted() { 
-            return \$this->unsorted; 
-    }
-    public function setUnsorted(\$unsorted) { 
-            \$this->unsorted = \$unsorted; 
-    }    
-
-}";
-    
-    gravar(DAO."/Sort.php", $str);
-}
-
-function getFactoryPageable() {
-    $str = "<?php
-namespace engine\dao;
-
-class FactoryPageable
-{
-    public function makeResponse(\$lista, \$page, \$pageSize)
-    {
-        if(\$pageSize == 0){
-            \$pageSize = 1;
-        }
-        
-        //RootClass
-        \$rootClass = new RootClass();
-        \$rootClass->setContent(\$lista);
-        \$rootClass->setTotalElements(sizeof(\$lista));
-
-        \$pgSize = sizeof(\$lista) / \$pageSize;
-
-        if (fmod(sizeof(\$lista), \$pageSize) > 0) {
-            \$pgSize = (intval(\$pgSize) + 1);
-        }
-        \$rootClass->setTotalPages(\$pgSize);
-
-        //Pageable
-        \$pageable = new Pageable();
-        if (\$page == 0) {
-            \$page = 1;
-        }
-        \$pageable->setPageNumber(intval(\$page));
-        \$pageable->setPageSize(intval(\$pageSize));
-
-        \$sort = new Sort();
-
-        \$pageable->setSort(\$sort);
-        \$rootClass->setPageable(\$pageable);
-        \$rootClass->setSort(\$sort);
-
-        return json_encode(\$rootClass);
-    }
-}";
-    
-    gravar(DAO."/FactoryPageable.php", $str);
-}
-
 
 //-----------------------RESOURCES--------------------------------------
 ?>

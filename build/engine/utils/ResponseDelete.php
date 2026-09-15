@@ -8,7 +8,7 @@ class ResponseDelete implements \JsonSerializable
     private $size;
 
     
-    public function jsonSerialize()
+    public function jsonSerialize(): mixed
     {
         return ['status' => $this->getStatus(),
             'size' => $this->getSize()        		
