@@ -97,7 +97,11 @@ Não rode o `Package.php` no GitHub sem revisar: o arquivo empacotado herda o qu
    - **Sim** — cria tabelas `ofa_users` / tokens OAuth2, usuário `admin` e exige `Authorization: Bearer …` em todas as rotas (exceto obter token).
    - **Não** — APIs abertas.
 
-4. Ao terminar, abre o **Barramento** (`barramento.php`) com a lista de rotas.
+4. Ao terminar, abre o **Barramento** (`http://localhost/OneForAll/build/barramento.php`), no estilo Swagger UI:
+   - **Try it out** em cada operação
+   - **Authorize** para colar o Bearer ou fluxo OAuth2 password
+   - painel de **headers** (Authorization, Accept, Content-Type, X-Timezone e headers extras)
+   - spec OpenAPI em `openapi.php`
 
 Com `FORCE_OVERWRITE = true`, cada geração reescreve `build/engine/`.
 

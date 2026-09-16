@@ -38,7 +38,7 @@ function find()
     while ( $row = $coluns->fetch() ) {
         if(strtolower($row['Field']) == 'id'){
             $str .= "
-    if (isset(\$_REQUEST['".strtolower("id")."'])) {
+    if (ofaHasParam(\$_REQUEST, '".strtolower("id")."')) {
 		\$where = new FilterWhere();
 		\$where->setCollum('".$table[0].".id');		
 		\$where->setValue(\$_REQUEST['".strtolower("id")."']);
@@ -47,7 +47,7 @@ function find()
 ";
         }else if(strpos($row['Type'], 'int') !== false){
             $str .= " 
-    if(isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
+    if(ofaHasParam(\$_REQUEST, '".strtolower($row['Field'])."')) {
  
 		 \$where = new FilterWhere();       
 		 \$where->setCollum('".strtolower($table[0].".".$row['Field'])."');         
@@ -58,7 +58,7 @@ function find()
 ";
         }else if(isDateColumn($row['Type'])){
             $str .= "
-    if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
+    if (ofaHasParam(\$_REQUEST, '".strtolower($row['Field'])."')) {
 		\$where = new FilterWhere();
 		\$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
 		\$where->setValue(DateTimeCodec::toStorage(\$_REQUEST['".strtolower($row['Field'])."']));
@@ -67,7 +67,7 @@ function find()
 ";
         }else{
             $str .= "
-    if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
+    if (ofaHasParam(\$_REQUEST, '".strtolower($row['Field'])."')) {
 
 		\$where = new FilterWhere();       
 		\$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
@@ -81,10 +81,10 @@ function find()
     }
     		$str .= "
 
- 	if (isset(\$_REQUEST['page'])) {
+ 	if (ofaHasParam(\$_REQUEST, 'page')) {
     	\$page = \$_REQUEST['page'];
     }
-    if (isset(\$_REQUEST['pageSize'])) {
+    if (ofaHasParam(\$_REQUEST, 'pageSize')) {
     	\$pageSize = \$_REQUEST['pageSize'];
     }
 "; 
@@ -117,7 +117,7 @@ function findAll()
         while ( $row = $coluns->fetch() ) {
             if(strtolower($row['Field']) == 'id'){
                 $str .= "
-    if (isset(\$_GET['".strtolower("id")."'])) {        
+    if (ofaHasParam(\$_GET, '".strtolower("id")."')) {        
 		\$where = new FilterWhere();
 		\$where->setCollum('".$table[0].".id');
 		\$where->setValue(\$_GET['".strtolower("id")."']);
@@ -126,7 +126,7 @@ function findAll()
 ";
             }else if(strpos($row['Type'], 'int') !== false){
                 $str .= "
-    if (isset(\$_GET['".strtolower($row['Field'])."'])) {
+    if (ofaHasParam(\$_GET, '".strtolower($row['Field'])."')) {
          \$where = new FilterWhere();       
 		 \$where->setCollum('".strtolower($table[0].".".$row['Field'])."');         
 		 \$where->setValue(\$_GET['".strtolower($row['Field'])."']);
@@ -135,7 +135,7 @@ function findAll()
 ";
             }else if(isDateColumn($row['Type'])){
                 $str .= "
-    if (isset(\$_GET['".strtolower($row['Field'])."'])) {
+    if (ofaHasParam(\$_GET, '".strtolower($row['Field'])."')) {
          \$where = new FilterWhere();
 		 \$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
 		 \$where->setValue(DateTimeCodec::toStorage(\$_GET['".strtolower($row['Field'])."']));
@@ -144,7 +144,7 @@ function findAll()
 ";
             }else{
                 $str .= "
-    if (isset(\$_GET['".strtolower($row['Field'])."'])) {
+    if (ofaHasParam(\$_GET, '".strtolower($row['Field'])."')) {
        \$where = new FilterWhere();       
 		\$where->setCollum('".strtolower($table[0].".".$row['Field'])."');
         \$where->setCondition('like');
@@ -157,10 +157,10 @@ function findAll()
         
         $str .= "
         		
- 	if (isset(\$_REQUEST['page'])) {
+ 	if (ofaHasParam(\$_REQUEST, 'page')) {
     	\$page = \$_REQUEST['page'];
     }
-    if (isset(\$_REQUEST['pageSize'])) {
+    if (ofaHasParam(\$_REQUEST, 'pageSize')) {
     	\$pageSize = \$_REQUEST['pageSize'];
     }
 "; 
@@ -188,19 +188,19 @@ function remove()
     while ( $row = $coluns->fetch() ) {
         if(strtolower($row['Field']) == 'id'){
             $str .= "
-    if (isset(\$_GET['".strtolower("id")."'])) {        
+    if (ofaHasParam(\$_GET, '".strtolower("id")."')) {        
         \$".strtolower($table[0])."->setId(\$_GET['".strtolower("id")."']);
     }
 ";
         }else if(strpos($row['Type'], 'int') !== false){
             $str .= "
-    if (isset(\$_GET['".strtolower($row['Field'])."'])) {
+    if (ofaHasParam(\$_GET, '".strtolower($row['Field'])."')) {
         \$".strtolower($table[0])."->set".ucfirst($row['Field'])."(\$_GET['".strtolower($row['Field'])."']);
     }
 ";
         }else{
             $str .= "
-    if (isset(\$_GET['".strtolower($row['Field'])."'])) {
+    if (ofaHasParam(\$_GET, '".strtolower($row['Field'])."')) {
         \$".strtolower($table[0])."->set".ucfirst($row['Field'])."(\$_GET['".strtolower($row['Field'])."']);
     }";
             
@@ -297,19 +297,19 @@ function create()
     while ( $row = $coluns->fetch() ) {
         if(strtolower($row['Field']) == 'id'){
             $str .= "
-    if (isset(\$_REQUEST['".strtolower("id")."'])) {        
+    if (ofaHasParam(\$_REQUEST, '".strtolower("id")."')) {        
         \$".strtolower($table[0])."->setId(\$_REQUEST['".strtolower("id")."']);
     }
 ";
         }else if(strpos($row['Type'], 'int') !== false){
             $str .= "
-    if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
+    if (ofaHasParam(\$_REQUEST, '".strtolower($row['Field'])."')) {
         \$".strtolower($table[0])."->set".ucfirst($row['Field'])."(\$_REQUEST['".strtolower($row['Field'])."']);
     }
 ";
         }else{
             $str .= "
-    if (isset(\$_REQUEST['".strtolower($row['Field'])."'])) {
+    if (ofaHasParam(\$_REQUEST, '".strtolower($row['Field'])."')) {
         \$".strtolower($table[0])."->set".ucfirst($row['Field'])."(\$_REQUEST['".strtolower($row['Field'])."']);
     }";
             

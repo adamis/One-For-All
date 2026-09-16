@@ -22,6 +22,7 @@ $preferred = [
     'CreateAdapters.php',
     'CreateInteractor.php',
     'Recursos.php',
+    'CreateBarramento.php',
     'CallsActivated.php',
     'Calls.php',
 ];
@@ -33,7 +34,7 @@ $skip = [
 
 $phpFiles = [];
 foreach (scandir(__DIR__) as $entry) {
-    if ($entry === '.' || $entry === '..' || $entry[0] === '.') {
+    if ($entry === '.' || $entry === '..' || $entry[0] === '.' || $entry[0] === '_') {
         continue;
     }
     $path = __DIR__ . DIRECTORY_SEPARATOR . $entry;
