@@ -4,7 +4,7 @@
 
 // NOME DA PASTA DO PROJETO (caminho web a partir do htdocs)
 define ( "PROJECT",    "OneForAll/build" ); //ALTERE PARA O NOME DO PROJETO
-define ( "ONEFORALL_VERSION", "2.0.5" );
+define ( "ONEFORALL_VERSION", "2.0.13" );
 
 // DADOS DE BANCO (OFFICIAL)
 define ( "BANCO"  , "oseasy-local" ); //ALTERE PARA O NOME DO SEU BANCO

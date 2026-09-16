@@ -206,9 +206,12 @@ class TokenGuard
         if (!$service->validateAccessToken($token)) {
             http_response_code(401);
             header('WWW-Authenticate: Bearer realm="OneForAll", error="invalid_token"');
+            $missing = ($token === null || $token === '');
             echo json_encode([
                 'error' => 'invalid_token',
-                'error_description' => 'Token ausente, expirado ou invalido'
+                'error_description' => $missing
+                    ? 'Token ausente. Envie Authorization: Bearer {access_token}'
+                    : 'Token expirado ou invalido. Gere outro em POST /oauth/token'
             ], JSON_UNESCAPED_UNICODE);
             exit;
         }
@@ -216,18 +219,39 @@ class TokenGuard
 
     public static function extractBearer()
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-        if ($header === '' && function_exists('apache_request_headers')) {
-            $headers = apache_request_headers();
-            foreach ($headers as $name => $value) {
+        $header = '';
+        $candidates = [
+            $_SERVER['HTTP_AUTHORIZATION'] ?? '',
+            $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '',
+            $_SERVER['Authorization'] ?? '',
+        ];
+        foreach ($_SERVER as $key => $value) {
+            if (is_string($value) && $value !== '' && stripos((string) $key, 'AUTHORIZATION') !== false) {
+                $candidates[] = $value;
+            }
+        }
+        if (function_exists('apache_request_headers')) {
+            foreach (apache_request_headers() as $name => $value) {
                 if (strcasecmp($name, 'Authorization') === 0) {
-                    $header = $value;
-                    break;
+                    $candidates[] = $value;
                 }
             }
         }
-        if (stripos($header, 'Bearer ') === 0) {
-            return trim(substr($header, 7));
+        if (function_exists('getallheaders')) {
+            foreach (getallheaders() as $name => $value) {
+                if (strcasecmp($name, 'Authorization') === 0) {
+                    $candidates[] = $value;
+                }
+            }
+        }
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && $candidate !== '') {
+                $header = $candidate;
+                break;
+            }
+        }
+        if (preg_match('/Bearer\s+(\S+)/i', $header, $m)) {
+            return $m[1];
         }
         if (!empty($_GET['access_token'])) {
             return (string) $_GET['access_token'];
@@ -264,6 +288,7 @@ class OAuth2Service
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
+        $this->pdo->exec("SET time_zone = '+00:00'");
     }
 
     public function issueToken(array $input)
@@ -287,7 +312,7 @@ class OAuth2Service
         if ($token === null || $token === '') {
             return false;
         }
-        $sth = $this->pdo->prepare('SELECT id FROM ofa_oauth_access_tokens WHERE token = :t AND revoked = 0 AND expires_at > NOW() LIMIT 1');
+        $sth = $this->pdo->prepare('SELECT id FROM ofa_oauth_access_tokens WHERE token = :t AND revoked = 0 AND expires_at > UTC_TIMESTAMP() LIMIT 1');
         $sth->execute([':t' => $token]);
         return (bool) $sth->fetch();
     }
@@ -336,7 +361,7 @@ class OAuth2Service
             return ['error' => 'invalid_request', 'error_description' => 'refresh_token obrigatorio'];
         }
 
-        $sth = $this->pdo->prepare('SELECT * FROM ofa_oauth_refresh_tokens WHERE token = :t AND revoked = 0 AND expires_at > NOW() LIMIT 1');
+        $sth = $this->pdo->prepare('SELECT * FROM ofa_oauth_refresh_tokens WHERE token = :t AND revoked = 0 AND expires_at > UTC_TIMESTAMP() LIMIT 1');
         $sth->execute([':t' => $refresh]);
         $row = $sth->fetch();
         if (!$row || $row['client_id'] !== $clientId) {
@@ -358,8 +383,8 @@ class OAuth2Service
         $refresh = bin2hex(random_bytes(32));
         $accessTtl = SecurityConfig::accessTtl();
         $refreshTtl = SecurityConfig::refreshTtl();
-        $accessExp = date('Y-m-d H:i:s', time() + $accessTtl);
-        $refreshExp = date('Y-m-d H:i:s', time() + $refreshTtl);
+        $accessExp = gmdate('Y-m-d H:i:s', time() + $accessTtl);
+        $refreshExp = gmdate('Y-m-d H:i:s', time() + $refreshTtl);
 
         $insA = $this->pdo->prepare('INSERT INTO ofa_oauth_access_tokens (token, user_id, client_id, expires_at) VALUES (:t, :u, :c, :e)');
         $insA->execute([

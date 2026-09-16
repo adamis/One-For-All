@@ -1,4 +1,5 @@
 # Segredos e artefatos locais
+build/
 build/engine/oauth-admin.txt
 build/engine/.security_flag
 *.out
